@@ -2,7 +2,14 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Video con Subtítulos</title>
+  <title>Video con Subtítulos y Traducción</title>
+  <style>
+    .japanese-word {
+      color: blue;
+      text-decoration: underline;
+      cursor: pointer;
+    }
+  </style>
 </head>
 <body>
   <video width="640" controls>
@@ -12,5 +19,19 @@
     <track label="Japonés" kind="subtitles" srclang="ja" src="subs-ja.vtt">
     Tu navegador no soporta el video.
   </video>
+  <hr>
+  <h3>Palabras japonesas (haz clic para traducir en Google):</h3>
+  <span class="japanese-word" onclick="translateWord('こんにちは')">こんにちは</span>
+  <span class="japanese-word" onclick="translateWord('世界')">世界</span>
+  <span class="japanese-word" onclick="translateWord('ありがとう')">ありがとう</span>
+  <span class="japanese-word" onclick="translateWord('さようなら')">さようなら</span>
+  <span class="japanese-word" onclick="translateWord('日本')">日本</span>
+  <script>
+    function translateWord(word) {
+      window.open(
+        "https://translate.google.com/?sl=ja&tl=es&text=" + encodeURIComponent(word),
+        "_blank"
+      );
+    }
+  </script>
 </body>
-</html>
