@@ -2,13 +2,13 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <title>Reproductor DBZ Pastel — GitHub Pages</title>
+  <title>Reproductor DBZ — Pages</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     :root{ --bg:#f6f7fb; --ink:#2d2a32; --muted:#6b6a73; --panel:#ffffff; --edge:#e9e8f2; --accent:#b59bff; }
     *{box-sizing:border-box} html,body{height:100%}
     body{
-      margin:0; font-family:system-ui, -apple-system, Segoe UI, Roboto, Inter, Arial; color:var(--ink);
+      margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial; color:var(--ink);
       background:
         radial-gradient(1000px 1000px at 10% -10%, #efeaff 0%, transparent 55%),
         radial-gradient(900px 900px at 100% 0%, #e3fff7 0%, transparent 55%),
@@ -38,7 +38,6 @@
     .buffered{ width:0%; background:#e8e7f4 } .progress{ width:0%; background:var(--accent) }
     input[type="range"].slider{-webkit-appearance:none; appearance:none; width:100%; height:4px; background:transparent; outline:none}
     input[type="range"].slider::-webkit-slider-thumb{-webkit-appearance:none; width:16px; height:16px; border-radius:50%; background:white; border:2px solid var(--accent); box-shadow:0 2px 6px rgba(0,0,0,.12); margin-top:-6px}
-
     .vol{width:min(180px,25vw)}
     input[type="range"].vol-slider{-webkit-appearance:none; appearance:none; width:100%; height:4px; background:#efeef8; border-radius:999px}
     input[type="range"].vol-slider::-webkit-slider-thumb{ width:14px; height:14px; border-radius:50%; background:var(--accent) }
@@ -46,20 +45,14 @@
     .select{ padding:8px 10px; border-radius:12px; border:1px solid var(--edge); background:linear-gradient(180deg,#fff,#fafafe); color:var(--ink) }
     .foot{ color:var(--muted); font-size:13px; padding:0 16px 16px }
 
-    /* Subtítulos custom (encima del video) */
+    /* Subtítulos overlay */
     .captions{ position:absolute; left:0; right:0; bottom:6%; display:flex; flex-direction:column; gap:6px; align-items:center; padding:0 12px; z-index:5; pointer-events:auto }
     .cap-line{ max-width:min(86%, 900px); width:fit-content; color:#111; font-weight:600; letter-spacing:.2px; line-height:1.35; border-radius:14px; padding:8px 12px; box-shadow:0 6px 20px rgba(0,0,0,.16) }
-    .cap-line.track-ja{ background:rgba(255,255,255,.92) }
-    .cap-line.track-romaji{ background:rgba(255,245,232,.95) }
-    .cap-line.track-es{ background:rgba(236,253,245,.95) }
-    .cap-line span.word{ cursor:pointer; padding:0 2px; border-radius:6px }
-    .cap-line span.word:hover{ background:rgba(0,0,0,.06) }
+    .track-ja{ background:rgba(255,255,255,.92) }
+    .track-romaji{ background:rgba(255,245,232,.95) }
+    .track-es{ background:rgba(236,253,245,.95) }
+    .cap-line span.word{ cursor:default; padding:0 2px; border-radius:6px } /* ya no son clickeables */
 
-    /* Panel flotante encima de todo */
-    .popover{ position:absolute; z-index:10; min-width:220px; max-width:320px; background:#fff; border:1px solid var(--edge); border-radius:14px; box-shadow:0 10px 30px rgba(0,0,0,.15); padding:10px 12px; display:none }
-    .popover .word{ font-weight:800 } .popover .hint{ color:var(--muted); font-size:12px }
-
-    /* Diagnóstico */
     .diag{ padding:12px 16px; border-top:1px dashed var(--edge); font-size:13px; color:#4b5563; display:flex; gap:8px; flex-wrap:wrap }
     .pill{ padding:4px 8px; border-radius:999px; border:1px solid var(--edge); background:#f7f7ff; white-space:nowrap }
     .tools{ display:flex; gap:8px; padding:0 16px 16px; flex-wrap:wrap }
@@ -67,20 +60,19 @@
   </style>
 </head>
 <body>
-  <div class="player" id="player" tabindex="0" aria-label="Reproductor de video con subtítulos y panel flotante">
+  <div class="player" id="player" tabindex="0" aria-label="Reproductor de video con subtítulos">
     <div class="header">
       <h1 class="title">Proyecto integral — Reproductor</h1>
       <span class="badge" id="badgeDur">00:00</span>
     </div>
 
     <div class="stage">
-      <!-- MISMO ORIGEN: archivos locales del repo -->
       <video id="video" preload="metadata" playsinline webkit-playsinline poster="poster.jpg">
         <source id="src" src="video.mp4" type="video/mp4" />
-        <!-- Dejá JA por defecto para que cargue la pista ni bien abre -->
-        <track id="trk-ja" label="日本語"   kind="subtitles" srclang="ja" src="subs-ja.vtt" default />
-        <track id="trk-es" label="Español" kind="subtitles" srclang="es" src="subs-es.vtt" />
-        <track id="trk-ro" label="Rōmaji"  kind="subtitles" srclang="ro" src="subs-ro.vtt" />
+        <!-- Pistas (mismo origen). JA por defecto -->
+        <track id="trk-ja" label="日本語"   kind="subtitles" srclang="ja"      src="subs-ja.vtt" default />
+        <track id="trk-ro" label="Rōmaji"  kind="subtitles" srclang="ja-Latn" src="subs-ro.vtt" />
+        <track id="trk-es" label="Español" kind="subtitles" srclang="es"      src="subs-es.vtt" />
         Tu navegador no soporta la etiqueta <code>video</code>.
       </video>
 
@@ -90,17 +82,6 @@
         <div class="cap-line track-ja"     id="cap-ja" hidden></div>
         <div class="cap-line track-romaji" id="cap-romaji" hidden></div>
         <div class="cap-line track-es"     id="cap-es" hidden></div>
-      </div>
-
-      <div class="popover" id="popover">
-        <div><span class="word" id="pv-word">—</span></div>
-        <div class="hint" id="pv-hint">Tocá una palabra para ver opciones</div>
-        <div class="actions" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
-          <button class="chip-btn btn" id="pv-copy">Copiar</button>
-          <button class="chip-btn btn" id="pv-google">Buscar</button>
-          <button class="chip-btn btn" id="pv-jisho">Jisho</button>
-          <button class="chip-btn btn" id="pv-close">Cerrar</button>
-        </div>
       </div>
     </div>
 
@@ -133,9 +114,9 @@
           <option value="1.75">1.75×</option>
           <option value="2">2×</option>
         </select>
-        <!-- Estados iniciales consistentes con showJA=true -->
+        <!-- Independientes: se pueden combinar -->
         <button class="btn" id="tog-ja"      title="Alternar Japonés" aria-pressed="true">JA</button>
-        <button class="btn" id="tog-romaji"  title="Alternar Rōmaji" aria-pressed="false">RO</button>
+        <button class="btn" id="tog-romaji"  title="Alternar Rōmaji"  aria-pressed="false">RO</button>
         <button class="btn" id="tog-es"      title="Alternar Español" aria-pressed="false">ES</button>
         <button class="btn" id="fs"          title="Pantalla completa (F)" aria-label="Pantalla completa">⤢</button>
       </div>
@@ -145,13 +126,13 @@
       <button class="btn" id="btnTest">Probar video de prueba (MDN)</button>
       <button class="btn" id="btnURL">Cargar por URL…</button>
       <span class="pill" id="statusSrc">src: video.mp4</span>
-      <span class="pill" id="pillES">ES: —</span>
       <span class="pill" id="pillJA">JA: —</span>
       <span class="pill" id="pillRO">RO: —</span>
+      <span class="pill" id="pillES">ES: —</span>
     </div>
     <div class="diag" id="diag"></div>
 
-    <div class="foot">Atajos: <span class="kbd">Espacio</span> jugar/pausar · <span class="kbd">←/→</span> ±5s · <span class="kbd">↑/↓</span> volumen · <span class="kbd">M</span> mute · <span class="kbd">F</span> full screen · <span class="kbd">J/A/E</span> alternar JA/RO/ES · <span class="kbd">Esc</span> cerrar panel</div>
+    <div class="foot">Atajos: <span class="kbd">Espacio</span> jugar/pausar · <span class="kbd">←/→</span> ±5s · <span class="kbd">↑/↓</span> volumen · <span class="kbd">M</span> mute · <span class="kbd">F</span> full screen · <span class="kbd">J/A/E</span> alternar JA/RO/ES</div>
   </div>
 
   <script>
@@ -162,12 +143,11 @@
       const back10=$('#back10'), fwd10=$('#fwd10'), seek=$('#seek'), progressBar=$('#progressBar'), bufferedBar=$('#bufferedBar');
       const cur=$('#currentTime'), dur=$('#duration'), muteBtn=$('#mute'), vol=$('#volume'), speed=$('#speed'), fs=$('#fs'), badgeDur=$('#badgeDur');
       const diag=$('#diag'), statusSrc=$('#statusSrc');
-      const pillES=$('#pillES'), pillJA=$('#pillJA'), pillRO=$('#pillRO');
+      const pillJA=$('#pillJA'), pillRO=$('#pillRO'), pillES=$('#pillES');
 
       function log(msg){ diag.innerHTML = `[${new Date().toLocaleTimeString()}] ${msg}<br>` + diag.innerHTML; }
       function setSrc(url){ srcEl.src=url; statusSrc.textContent='src: '+url; video.load(); }
 
-      // Duración
       function formatTime(s){ if(!isFinite(s)) return '0:00'; const h=Math.floor(s/3600), m=Math.floor((s%3600)/60), sec=String(Math.floor(s%60)).padStart(2,'0'); return (h>0? h+':'+String(m).padStart(2,'0'):m)+':'+sec; }
       video.addEventListener('loadedmetadata',()=>{ dur.textContent=formatTime(video.duration); badgeDur.textContent=formatTime(video.duration); updateBuffered(); log('loadedmetadata OK'); });
       video.addEventListener('canplay',()=> log('canplay'));
@@ -175,19 +155,13 @@
       video.addEventListener('stalled',()=> log('stalled'));
       video.addEventListener('waiting',()=> log('waiting'));
       video.addEventListener('suspend',()=> log('suspend (descargando)'));
-      video.addEventListener('error',()=>{
-        const code = video.error ? video.error.code : 'desconocido';
-        log('ERROR VIDEO code='+code+' (1=aborted,2=network,3=decode,4=src not supported)');
-        alert('No se puede reproducir el video. Código: '+code+'\nRevisá: que el archivo exista, que el MP4 sea H.264 + AAC y que la ruta sea correcta.');
-      });
+      video.addEventListener('error',()=>{ const code = video.error ? video.error.code : 'desconocido'; log('ERROR VIDEO code='+code); });
 
-      // Play/Pause
       function togglePlay(){ (video.paused||video.ended)?video.play():video.pause(); }
       ;[playBtn, video, bigPlay].forEach(el=>el.addEventListener('click', togglePlay));
-      video.addEventListener('play', ()=>{ iconPlay.textContent='⏸'; bigPlay.style.display='none'; playBtn.setAttribute('aria-label','Pausar'); });
-      video.addEventListener('pause', ()=>{ iconPlay.textContent='▶';  bigPlay.style.display='grid'; playBtn.setAttribute('aria-label','Reproducir'); });
+      video.addEventListener('play', ()=>{ iconPlay.textContent='⏸'; bigPlay.style.display='none'; });
+      video.addEventListener('pause', ()=>{ iconPlay.textContent='▶';  bigPlay.style.display='grid'; });
 
-      // Saltos y progreso
       back10.addEventListener('click', ()=> video.currentTime=Math.max(0, (video.currentTime||0)-10));
       fwd10 .addEventListener('click', ()=> video.currentTime=Math.min(video.duration||0, (video.currentTime||0)+10));
       function updateTime(){ cur.textContent=formatTime(video.currentTime); const pct=(video.currentTime/(video.duration||1))*100; progressBar.style.width=pct+'%'; seek.value=Math.round((video.currentTime/(video.duration||1))*1000)||0; }
@@ -197,72 +171,51 @@
       video.addEventListener('loadeddata', updateBuffered);
       seek.addEventListener('input', ()=>{ video.currentTime=(seek.value/1000)*(video.duration||0); updateTime(); });
 
-      // Volumen
       function updateMuteIcon(){ const level=video.muted||video.volume===0?0:video.volume; muteBtn.textContent= level===0?'🔇':(level<.5?'🔈':'🔊'); }
       vol.addEventListener('input', ()=>{ video.volume=Number(vol.value); if(video.volume>0) video.muted=false; updateMuteIcon(); });
       muteBtn.addEventListener('click', ()=>{ video.muted=!video.muted; updateMuteIcon(); });
       video.addEventListener('volumechange', updateMuteIcon); updateMuteIcon();
 
-      // Velocidad y fullscreen
       speed.addEventListener('change', ()=>{ video.playbackRate=Number(speed.value); });
       function toggleFS(){ if(document.fullscreenElement) document.exitFullscreen(); else player.requestFullscreen().catch(()=>{}); }
       fs.addEventListener('click', toggleFS);
 
-      // Subtítulos custom
       const capJA=$('#cap-ja'), capRO=$('#cap-romaji'), capES=$('#cap-es');
       const trkJA=$('#trk-ja'), trkRO=$('#trk-ro'), trkES=$('#trk-es');
       const togJA=$('#tog-ja'), togRO=$('#tog-romaji'), togES=$('#tog-es');
 
-      const tracks = {
-        ja: trkJA ? trkJA.track : null,
-        ro: trkRO ? trkRO.track : null,
-        es: trkES ? trkES.track : null
-      };
+      const tracks={ ja:trkJA?.track||null, ro:trkRO?.track||null, es:trkES?.track||null };
+      Object.values(tracks).forEach(t=>{ if(t){ try{ t.mode='hidden'; }catch(_){} } });
 
-      // Fuerza que las pistas se carguen (algunos navegadores si no están 'hidden' no las cargan)
-      Object.values(tracks).forEach(t=>{ if(t){ try{ t.mode='hidden'; }catch(e){} }});
-
-      // Diagnóstico/carga de pistas
-      function armTrack(trkEl, name, pill){
-        if(!trkEl){ log(`TRACK ${name}: no existe`); pill.textContent = `${name.toUpperCase()}: —`; return; }
-        const t = trkEl.track;
-        function setLoaded(){
-          t.mode = 'hidden';
-          pill.textContent = `${name.toUpperCase()}: ok`;
-          log(`TRACK ${name}: loaded (cues=${t.cues ? t.cues.length : 0})`);
-          renderCue();
-        }
-        function setError(){
-          pill.textContent = `${name.toUpperCase()}: error`;
-          log(`TRACK ${name}: ERROR de carga (MIME/URL)`);
-        }
-        if (trkEl.readyState === 2) setLoaded();
-        else {
-          trkEl.addEventListener('load', setLoaded, { once:true });
-          trkEl.addEventListener('error', setError, { once:true });
-        }
-        video.addEventListener('loadeddata', ()=>{ if(t.cues && t.cues.length && t.mode!=='hidden'){ t.mode='hidden'; setLoaded(); }});
+      // Diagnóstico de carga de pistas
+      function armTrack(el, name, pill){
+        if(!el){ pill.textContent = `${name.toUpperCase()}: —`; log(`TRACK ${name}: (no existe en el HTML)`); return; }
+        const t = el.track;
+        function ok(){ pill.textContent = `${name.toUpperCase()}: ok (${t.cues?t.cues.length:0})`; log(`TRACK ${name}: loaded`); renderCue(); }
+        function err(){ pill.textContent = `${name.toUpperCase()}: error`; log(`TRACK ${name}: error (archivo/ruta/WEBVTT)`); }
+        if (el.readyState === 2) ok(); else { el.addEventListener('load', ok, {once:true}); el.addEventListener('error', err, {once:true}); }
       }
-      armTrack(trkJA, 'ja', pillJA);
-      armTrack(trkES, 'es', pillES);
-      armTrack(trkRO, 'ro', pillRO);
+      armTrack(trkJA,'ja',pillJA);
+      armTrack(trkRO,'ro',pillRO);
+      armTrack(trkES,'es',pillES);
 
-      // Mostrar JA por defecto
+      // Estado inicial (podés combinar)
       const state={ showJA:true, showRO:false, showES:false };
       function setToggle(btn,on){ btn.setAttribute('aria-pressed', on); }
-      setToggle(togJA,state.showJA); setToggle(togRO,state.showRO); setToggle(togES,state.showES);
+      function syncToggles(){ setToggle(togJA,state.showJA); setToggle(togRO,state.showRO); setToggle(togES,state.showES); }
+      syncToggles();
 
-      togJA.addEventListener('click', ()=>{ state.showJA=!state.showJA; setToggle(togJA,state.showJA); renderCue(); });
-      togRO.addEventListener('click', ()=>{ state.showRO=!state.showRO; setToggle(togRO,state.showRO); renderCue(); });
-      togES.addEventListener('click', ()=>{ state.showES=!state.showES; setToggle(togES,state.showES); renderCue(); });
+      togJA.addEventListener('click', ()=>{ state.showJA=!state.showJA; syncToggles(); renderCue(); });
+      togRO.addEventListener('click', ()=>{ state.showRO=!state.showRO; syncToggles(); renderCue(); });
+      togES.addEventListener('click', ()=>{ state.showES=!state.showES; syncToggles(); renderCue(); });
 
       function tokenize(text, mode){
         if(!text) return [];
-        const parts = text.split(/\n/);
-        const out = [];
+        const parts=text.split(/\n/); const out=[];
         for(const line of parts){
-          const tokens = mode==='ja' ? [...line] : line.split(/(\s+|[.,!?，。！”“"'…：:；;\-——()\[\]])/).filter(Boolean);
-          out.push(tokens, '\n');
+          const tokens = mode==='ja' ? [...line]
+            : line.split(/(\s+|[.,!?，。！”“"'…：:；;\-——()\[\]])/).filter(Boolean);
+          out.push(tokens,'\n');
         }
         return out.flat();
       }
@@ -270,28 +223,19 @@
       function renderLine(track, el, mode){
         const show=(state.showJA&&mode==='ja')||(state.showRO&&mode==='ro')||(state.showES&&mode==='es');
         if(!show){ el.hidden=true; el.innerHTML=''; return; }
-        let cue = null;
-        if (track && track.activeCues && track.activeCues.length) {
-          cue = track.activeCues[0];
-        } else if (track && track.cues && track.cues.length) {
-          const t = video.currentTime;
-          for (let i=0;i<track.cues.length;i++){
-            const c = track.cues[i];
-            if (t >= c.startTime && t <= c.endTime){ cue = c; break; }
-          }
+        let cue=null;
+        if(track?.activeCues?.length) cue=track.activeCues[0];
+        else if(track?.cues?.length){
+          const t=video.currentTime;
+          for(let i=0;i<track.cues.length;i++){ const c=track.cues[i]; if(t>=c.startTime && t<=c.endTime){ cue=c; break; } }
         }
         if(!cue){ el.hidden=true; el.innerHTML=''; return; }
-
         const tokens=tokenize(cue.text, mode);
         el.hidden=false; el.innerHTML='';
-        let frag = document.createDocumentFragment();
+        let frag=document.createDocumentFragment();
         tokens.forEach(tok=>{
-          if(tok === '\n'){ el.appendChild(frag); el.appendChild(document.createElement('br')); frag = document.createDocumentFragment(); return; }
-          const sp=document.createElement('span');
-          sp.className='word';
-          sp.textContent=tok;
-          sp.dataset.word=tok.trim();
-          frag.appendChild(sp);
+          if(tok==='\n'){ el.appendChild(frag); el.appendChild(document.createElement('br')); frag=document.createDocumentFragment(); return; }
+          const sp=document.createElement('span'); sp.className='word'; sp.textContent=tok; sp.dataset.word=tok.trim(); frag.appendChild(sp);
         });
         el.appendChild(frag);
       }
@@ -303,47 +247,15 @@
       video.addEventListener('ratechange', renderCue);
       window.addEventListener('load', renderCue);
 
-      // Panel flotante
-      const pop=$('#popover'), pvWord=$('#pv-word'), pvHint=$('#pv-hint');
-      $('#pv-close').addEventListener('click', ()=> pop.style.display='none');
-      document.addEventListener('keydown',(e)=>{ if(e.key==='Escape') pop.style.display='none'; });
-      document.addEventListener('click',(e)=>{ if(!e.target.closest('#popover') && !e.target.closest('#captions')) pop.style.display='none'; });
-
-      // Click de palabra (captura temprano por si hay capas)
-      function handleWordClick(e){
-        const span = e.target.closest('span.word');
-        if(!span) return;
-        pvWord.textContent = span.dataset.word || span.textContent;
-        pvHint.textContent = /[\u3040-\u30ff\u3400-\u9fff]/.test(pvWord.textContent) ? 'Palabra japonesa seleccionada' : 'Palabra seleccionada';
-        const rect=player.getBoundingClientRect();
-        pop.style.display='block';
-        pop.style.left=(Math.min(rect.width-10, Math.max(10, e.clientX - rect.left + 8)))+'px';
-        pop.style.top =(Math.min(rect.height-10, Math.max(10, e.clientY - rect.top + 8)) - 10)+'px';
-      }
-      document.addEventListener('click', handleWordClick, true);
-
-      $('#pv-copy').addEventListener('click', async()=>{
-        try{ await navigator.clipboard.writeText(pvWord.textContent); pvHint.textContent='¡Copiado!'; }
-        catch{ pvHint.textContent='No se pudo copiar'; }
-      });
-      $('#pv-google').addEventListener('click', ()=> window.open(`https://www.google.com/search?q=${encodeURIComponent(pvWord.textContent.trim())}`,'_blank'));
-      $('#pv-jisho').addEventListener('click', ()=> window.open(`https://jisho.org/search/${encodeURIComponent(pvWord.textContent.trim())}`,'_blank'));
-
       // Herramientas
-      $('#btnTest').addEventListener('click', ()=>{
-        setSrc('https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4');
-        log('Cargando video de prueba MDN');
-      });
-      $('#btnURL').addEventListener('click', ()=>{
-        const u=prompt('Pegá una URL directa a .mp4 (https://...)'); if(!u) return;
-        setSrc(u.trim()); log('Cambié src a '+u);
-      });
+      $('#btnTest').addEventListener('click', ()=>{ setSrc('https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4'); log('Cargando video de prueba MDN'); });
+      $('#btnURL').addEventListener('click', ()=>{ const u=prompt('Pegá una URL directa a .mp4 (https://...)'); if(!u) return; setSrc(u.trim()); log('Cambié src a '+u); });
 
       // Atajos
       document.addEventListener('keydown',(e)=>{
-        if(e.key==='j' || e.key==='J'){ $('#tog-ja').click(); }
-        if(e.key==='a' || e.key==='A'){ $('#tog-romaji').click(); }
-        if(e.key==='e' || e.key==='E'){ $('#tog-es').click(); }
+        if(e.key==='j' || e.key==='J'){ togJA.click(); }
+        if(e.key==='a' || e.key==='A'){ togRO.click(); }
+        if(e.key==='e' || e.key==='E'){ togES.click(); }
       });
     })();
   </script>
