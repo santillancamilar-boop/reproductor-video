@@ -49,12 +49,10 @@
     .track-romaji{ background:rgba(255,245,232,.95) }
     .track-es{ background:rgba(236,253,245,.95) }
 
-    /* Solo japonés es clickeable */
     .word-ja{ cursor:pointer; padding:0 2px; border-radius:6px }
     .word-ja:hover{ background:rgba(0,0,0,.06) }
     .track-romaji .word, .track-es .word{ pointer-events:none; cursor:default }
 
-    /* Popover (JA) */
     .popover{ position:absolute; z-index:10; min-width:240px; max-width:360px; background:#fff; border:1px solid var(--edge); border-radius:14px; box-shadow:0 10px 30px rgba(0,0,0,.15); padding:10px 12px; display:none }
     .popover .word{ font-weight:800; font-size:18px }
     .popover .hint{ color:var(--muted); font-size:12px; margin-top:4px }
@@ -79,7 +77,6 @@
     <div class="stage">
       <video id="video" preload="metadata" playsinline webkit-playsinline poster="poster.jpg">
         <source id="src" src="video.mp4" type="video/mp4" />
-        <!-- Pistas (mismo origen). JA por defecto -->
         <track id="trk-ja" label="日本語"   kind="subtitles" srclang="ja"      src="subs-ja.vtt" default />
         <track id="trk-ro" label="Rōmaji"  kind="subtitles" srclang="ja-Latn" src="subs-ro.vtt" />
         <track id="trk-es" label="Español" kind="subtitles" srclang="es"      src="subs-es.vtt" />
@@ -93,7 +90,6 @@
         <div class="cap-line track-es"     id="cap-es" hidden></div>
       </div>
 
-      <!-- Popover (solo JA) -->
       <div class="popover" id="popover">
         <div><span class="word" id="pv-word">—</span></div>
         <div class="hint" id="pv-reading"></div>
@@ -131,7 +127,6 @@
           <option value="0.5">0.5×</option><option value="0.75">0.75×</option><option value="1" selected>1×</option>
           <option value="1.25">1.25×</option><option value="1.5">1.5×</option><option value="1.75">1.75×</option><option value="2">2×</option>
         </select>
-        <!-- Independientes: combinables -->
         <button class="btn" id="tog-ja"      aria-pressed="true">JA</button>
         <button class="btn" id="tog-romaji"  aria-pressed="false">RO</button>
         <button class="btn" id="tog-es"      aria-pressed="false">ES</button>
@@ -149,7 +144,6 @@
       <span class="pill" id="pillES">ES: —</span>
     </div>
     <div class="diag" id="diag"></div>
-
     <div class="foot">Atajos: Espacio · ←/→ ±5s · ↑/↓ volumen · M mute · F pantalla completa · J/A/E alternar JA/RO/ES · G furigana</div>
   </div>
 
@@ -159,44 +153,24 @@
       const player=$('#player'), video=$('#video'), srcEl=$('#src');
       const bigPlay=$('#bigPlay'), playBtn=$('#play'), iconPlay=$('#icon-play');
       const back10=$('#back10'), fwd10=$('#fwd10'), seek=$('#seek'), progressBar=$('#progressBar'), bufferedBar=$('#bufferedBar');
-      const cur=$('#currentTime'), dur=$('#duration'), muteBtn=$('#mute'), vol=$('#volume'), speed=$('#speed'), fs=$('#fs'), badgeDur=$('#badgeDur');
+      const cur=$('#currentTime'), dur=$('#duration'), muteBtn=$('#mute'), vol=$('#volume'), speed=$('#speed'), fsBtn=$('#fs'), badgeDur=$('#badgeDur');
       const diag=$('#diag'), statusSrc=$('#statusSrc');
       const pillJA=$('#pillJA'), pillRO=$('#pillRO'), pillES=$('#pillES');
 
-      /* === Mini diccionario (puedes ampliarlo) === */
-      const JA_DICT = {
-        "孫悟飯":   { yomi:"そんごはん", gloss:"Son Gohan (nombre propio)" },
-        "正しい":   { yomi:"ただしい", gloss:"correcto; justo" },
-        "こと":     { yomi:"こと", gloss:"cosa; hecho" },
-        "ために":   { yomi:"ために", gloss:"para; por el bien de" },
-        "戦う":     { yomi:"たたかう", gloss:"pelear; luchar" },
-        "罪":       { yomi:"つみ", gloss:"pecado; culpa" },
-        "ではない": { yomi:"ではない", gloss:"no es; no ser" },
-        "話し合い": { yomi:"はなしあい", gloss:"diálogo; discusión" },
-        "通用しない": { yomi:"つうようしない", gloss:"no funciona; no surte efecto" },
-        "相手":     { yomi:"あいて", gloss:"oponente; interlocutor" },
-        "精神":     { yomi:"せいしん", gloss:"espíritu; mente" },
-        "光":       { yomi:"ひかり", gloss:"luz" },
-        "自由に":   { yomi:"じゆうに", gloss:"libremente" },
-        "解放してやれ": { yomi:"かいほうしてやれ", gloss:"déjalo/libéralo" },
-        "気持ち":   { yomi:"きもち", gloss:"sentimiento" },
-        "分かる":   { yomi:"わかる", gloss:"entender" },
-        "もう":     { yomi:"もう", gloss:"ya; más" },
-        "我慢する": { yomi:"がまんする", gloss:"aguantarse; soportar" },
-        "ことはない": { yomi:"ことはない", gloss:"no es necesario; no hace falta" }
-      };
-      const DICT_KEYS = Object.keys(JA_DICT).sort((a,b)=>b.length-a.length); // más largo primero
+      // Mostrar errores JS en el panel
+      window.addEventListener('error', e=>{ log('JS ERROR: '+e.message); });
+
+      const JA_DICT={ "孫悟飯":{yomi:"そんごはん",gloss:"Son Gohan (nombre propio)"}, "正しい":{yomi:"ただしい",gloss:"correcto; justo"}, "こと":{yomi:"こと",gloss:"cosa; hecho"}, "ために":{yomi:"ために",gloss:"para; por el bien de"}, "戦う":{yomi:"たたかう",gloss:"pelear; luchar"}, "罪":{yomi:"つみ",gloss:"pecado; culpa"}, "ではない":{yomi:"ではない",gloss:"no es; no ser"}, "話し合い":{yomi:"はなしあい",gloss:"diálogo; discusión"}, "通用しない":{yomi:"つうようしない",gloss:"no funciona; no surte efecto"}, "相手":{yomi:"あいて",gloss:"oponente; interlocutor"}, "精神":{yomi:"せいしん",gloss:"espíritu; mente"}, "光":{yomi:"ひかり",gloss:"luz"}, "自由に":{yomi:"じゆうに",gloss:"libremente"}, "解放してやれ":{yomi:"かいほうしてやれ",gloss:"déjalo/libéralo"}, "気持ち":{yomi:"きもち",gloss:"sentimiento"}, "分かる":{yomi:"わかる",gloss:"entender"}, "もう":{yomi:"もう",gloss:"ya; más"}, "我慢する":{yomi:"がまんする",gloss:"aguantarse; soportar"}, "ことはない":{yomi:"ことはない",gloss:"no es necesario; no hace falta"} };
+      const DICT_KEYS=Object.keys(JA_DICT).sort((a,b)=>b.length-a.length);
 
       function log(msg){ diag.innerHTML=`[${new Date().toLocaleTimeString()}] ${msg}<br>`+diag.innerHTML; }
       function setSrc(url){ srcEl.src=url; statusSrc.textContent='src: '+url; video.load(); }
 
-      // formato tiempo / eventos básicos
       const fmt=(s)=>!isFinite(s)?'0:00':(s>=3600?Math.floor(s/3600)+':'+String(Math.floor(s%3600/60)).padStart(2,'0'):Math.floor(s/60)) + ':' + String(Math.floor(s%60)).padStart(2,'0');
       video.addEventListener('loadedmetadata',()=>{ dur.textContent=fmt(video.duration); badgeDur.textContent=fmt(video.duration); updateBuffered(); log('loadedmetadata OK'); });
       ["canplay","canplaythrough","stalled","waiting","suspend"].forEach(ev=>video.addEventListener(ev,()=>log(ev)));
       video.addEventListener('error',()=>{ const code=video.error?video.error.code:'?'; log('ERROR VIDEO code='+code); });
 
-      // controles
       const togglePlay=()=> (video.paused||video.ended)?video.play():video.pause();
       [playBtn, video, bigPlay].forEach(el=>el.addEventListener('click', togglePlay));
       video.addEventListener('play', ()=>{ iconPlay.textContent='⏸'; bigPlay.style.display='none'; });
@@ -212,16 +186,16 @@
       muteBtn.addEventListener('click', ()=>{ video.muted=!video.muted; updMute(); });
       video.addEventListener('volumechange', updMute); updMute();
       speed.addEventListener('change', ()=>{ video.playbackRate=Number(speed.value); });
-      const fs=()=>{ if(document.fullscreenElement) document.exitFullscreen(); else player.requestFullscreen().catch(()=>{}); }; $('#fs').addEventListener('click', fs);
 
-      // refs pistas
+      function toggleFS(){ if(document.fullscreenElement) document.exitFullscreen(); else player.requestFullscreen().catch(()=>{}); }
+      fsBtn.addEventListener('click', toggleFS);
+
       const capJA=$('#cap-ja'), capRO=$('#cap-romaji'), capES=$('#cap-es');
       const trkJA=$('#trk-ja'), trkRO=$('#trk-ro'), trkES=$('#trk-es');
       const togJA=$('#tog-ja'), togRO=$('#tog-romaji'), togES=$('#tog-es'), togFG=$('#tog-fg');
       const tracks={ ja:trkJA?.track||null, ro:trkRO?.track||null, es:trkES?.track||null };
       Object.values(tracks).forEach(t=>{ if(t){ try{ t.mode='hidden'; }catch(_){}});
 
-      // diagnóstico de carga
       function armTrack(el,name,pill){
         if(!el){ pill.textContent=`${name.toUpperCase()}: —`; log(`TRACK ${name}: (no existe en HTML)`); return; }
         const t=el.track;
@@ -231,7 +205,6 @@
       }
       armTrack(trkJA,'ja',pillJA); armTrack(trkRO,'ro',pillRO); armTrack(trkES,'es',pillES);
 
-      // estado (combinable)
       const state={ showJA:true, showRO:false, showES:false, showFG:false };
       const setPressed=(b,on)=>b.setAttribute('aria-pressed',on);
       const syncPress=()=>{ setPressed(togJA,state.showJA); setPressed(togRO,state.showRO); setPressed(togES,state.showES); setPressed(togFG,state.showFG); };
@@ -241,107 +214,63 @@
       togES.addEventListener('click',()=>{ state.showES=!state.showES; syncPress(); renderCue(); });
       togFG.addEventListener('click',()=>{ state.showFG=!state.showFG; syncPress(); renderCue(); });
 
-      /* === Segmentación y decoración JA === */
       const segJA=(typeof Intl!=='undefined' && Intl.Segmenter) ? new Intl.Segmenter('ja',{granularity:'word'}) : null;
 
-      // Escanea la línea y marca coincidencias de diccionario (más largo gana)
       function sliceWithDict(line){
-        const parts=[]; let i=0;
+        const parts=[]; let i=0; const keys=DICT_KEYS;
         while(i<line.length){
           let matched=null;
-          for(const key of DICT_KEYS){
-            if(line.startsWith(key, i)){ matched=key; break; }
-          }
-          if(matched){
-            const entry=JA_DICT[matched];
-            parts.push({type:'dict', text:matched, yomi:entry.yomi, gloss:entry.gloss, start:i, end:i+matched.length});
-            i+=matched.length;
-          }else{
-            parts.push({type:'char', text:line[i], start:i, end:i+1});
-            i++;
-          }
+          for(const key of keys){ if(line.startsWith(key,i)){ matched=key; break; } }
+          if(matched){ const e=JA_DICT[matched]; parts.push({type:'dict',text:matched,yomi:e.yomi,gloss:e.gloss,start:i,end:i+matched.length}); i+=matched.length; }
+          else { parts.push({type:'char',text:line[i],start:i,end:i+1}); i++; }
         }
         return parts;
       }
 
       function tokenizeJA(line){
-        // devuelve [{text,start,end,dict?:{yomi,gloss}}] listo para render
         const raw=sliceWithDict(line);
-        // agrupa chars no-dict usando Intl.Segmenter (si hay)
-        if(!segJA) return raw.map(p=> p.type==='dict'
-          ? {text:p.text,start:p.start,end:p.end, dict:{yomi:p.yomi,gloss:p.gloss}}
-          : {text:p.text,start:p.start,end:p.end});
-        const out=[];
-        let buffer='', bStart=null;
+        if(!segJA) return raw.map(p=> p.type==='dict' ? {text:p.text,start:p.start,end:p.end,dict:{yomi:p.yomi,gloss:p.gloss}} : {text:p.text,start:p.start,end:p.end});
+        const out=[]; let buffer='', bStart=null;
         const flush=()=>{
-          if(buffer==='') return;
+          if(!buffer) return;
+          let pos=0;
           for(const it of segJA.segment(buffer)){
-            const segText=it.segment;
-            const st=bStart + buffer.indexOf(segText);
-            const en=st+segText.length;
+            const segText=it.segment; const st=bStart + buffer.indexOf(segText,pos); const en=st+segText.length; pos = buffer.indexOf(segText,pos)+segText.length;
             out.push({text:segText,start:st,end:en});
           }
           buffer=''; bStart=null;
         };
         for(const p of raw){
-          if(p.type==='dict'){
-            flush();
-            out.push({text:p.text,start:p.start,end:p.end, dict:{yomi:p.yomi,gloss:p.gloss}});
-          }else{
-            if(buffer===''){ buffer=p.text; bStart=p.start; } else buffer+=p.text;
-          }
+          if(p.type==='dict'){ flush(); out.push({text:p.text,start:p.start,end:p.end,dict:{yomi:p.yomi,gloss:p.gloss}}); }
+          else { if(!buffer){ buffer=p.text; bStart=p.start; } else buffer+=p.text; }
         }
-        flush();
-        return out;
+        flush(); return out;
       }
 
       function renderLine(track, el, mode){
         const show=(state.showJA&&mode==='ja')||(state.showRO&&mode==='ro')||(state.showES&&mode==='es');
         if(!show){ el.hidden=true; el.innerHTML=''; return; }
-
-        // cue activa
         let cue=null;
         if(track?.activeCues?.length) cue=track.activeCues[0];
         else if(track?.cues?.length){ const t=video.currentTime; for(let i=0;i<track.cues.length;i++){ const c=track.cues[i]; if(t>=c.startTime && t<=c.endTime){ cue=c; break; } } }
         if(!cue){ el.hidden=true; el.innerHTML=''; return; }
 
-        // render
         el.hidden=false; el.innerHTML='';
         const lines=cue.text.split(/\r?\n/);
-        el.dataset.fulltext = cue.text;
-
         for(let li=0; li<lines.length; li++){
           const lineText=lines[li];
           if(mode==='ja'){
             const tokens=tokenizeJA(lineText);
-            // contenedor de línea con texto íntegro
-            const lineWrap=document.createElement('span');
-            lineWrap.className='line-ja';
-            lineWrap.dataset.text=lineText;
-
+            const lineWrap=document.createElement('span'); lineWrap.className='line-ja'; lineWrap.dataset.text=lineText;
             tokens.forEach(tok=>{
-              const sp=document.createElement('span');
-              sp.className='word-ja';
-              sp.dataset.word = tok.text.trim();
-              sp.dataset.start=tok.start; sp.dataset.end=tok.end;
-              if(tok.dict && state.showFG){
-                sp.innerHTML = `<ruby><rb>${tok.text}</rb><rt>${tok.dict.yomi}</rt></ruby>`;
-              }else{
-                sp.textContent = tok.text;
-              }
-              if(tok.dict){
-                sp.dataset.yomi = tok.dict.yomi;
-                sp.dataset.gloss = tok.dict.gloss;
-                sp.dataset.dict = '1';
-              }else{
-                sp.dataset.dict = '0';
-              }
+              const sp=document.createElement('span'); sp.className='word-ja'; sp.dataset.word=tok.text.trim(); sp.dataset.start=tok.start; sp.dataset.end=tok.end;
+              if(tok.dict && state.showFG){ sp.innerHTML=`<ruby><rb>${tok.text}</rb><rt>${tok.dict.yomi}</rt></ruby>`; }
+              else { sp.textContent=tok.text; }
+              if(tok.dict){ sp.dataset.yomi=tok.dict.yomi; sp.dataset.gloss=tok.dict.gloss; sp.dataset.dict='1'; } else { sp.dataset.dict='0'; }
               lineWrap.appendChild(sp);
             });
-
             el.appendChild(lineWrap);
           }else{
-            // RO/ES texto plano (no clickeable)
             el.appendChild(document.createTextNode(lineText));
           }
           if(li<lines.length-1) el.appendChild(document.createElement('br'));
@@ -349,11 +278,10 @@
       }
 
       function renderCue(){ renderLine(tracks.ja,capJA,'ja'); renderLine(tracks.ro,capRO,'ro'); renderLine(tracks.es,capES,'es'); }
-      ["cuechange"].forEach(ev=>{ if(tracks.ja) tracks.ja.addEventListener(ev, renderCue); if(tracks.ro) tracks.ro.addEventListener(ev, renderCue); if(tracks.es) tracks.es.addEventListener(ev, renderCue); });
+      Object.values(tracks).forEach(t=>{ t && t.addEventListener('cuechange', renderCue); });
       ["timeupdate","seeked","ratechange"].forEach(ev=>video.addEventListener(ev, renderCue));
       window.addEventListener('load', renderCue);
 
-      /* === Popover: solo JA === */
       const pop=$('#popover'), pvWord=$('#pv-word'), pvReading=$('#pv-reading'), pvMeaning=$('#pv-meaning');
       $('#pv-close').addEventListener('click', ()=> pop.style.display='none');
       document.addEventListener('keydown',(e)=>{ if(e.key==='Escape') pop.style.display='none'; });
@@ -363,9 +291,7 @@
         let best=null;
         for(const k of DICT_KEYS){
           const i=line.indexOf(k);
-          if(i!==-1 && i<=pos && pos<i+k.length){
-            if(!best || k.length>best.text.length) best={text:k, start:i, end:i+k.length, entry:JA_DICT[k]};
-          }
+          if(i!==-1 && i<=pos && pos<i+k.length){ if(!best || k.length>best.text.length) best={text:k,start:i,end:i+k.length,entry:JA_DICT[k]}; }
         }
         return best;
       }
@@ -375,21 +301,12 @@
         if(!capJA.contains(e.target)) return;
         const span=e.target.closest('.word-ja'); if(!span) return;
 
-        // Línea de contexto y posición (por si el token no está en diccionario)
-        const lineWrap = span.closest('.line-ja');
-        const lineText = lineWrap ? lineWrap.dataset.text || '' : span.textContent;
-        const start = Number(span.dataset.start)||0;
-        const end   = Number(span.dataset.end)||start+span.textContent.length;
-        const pos = Math.floor((start+end)/2);
+        const lineWrap=span.closest('.line-ja'); const lineText=lineWrap?lineWrap.dataset.text||'':span.textContent;
+        const start=Number(span.dataset.start)||0; const end=Number(span.dataset.end)||start+(span.textContent||'').length; const pos=Math.floor((start+end)/2);
 
-        // Si el span ya trae datos de diccionario, los usamos; si no, intentamos ampliar
-        let surface = span.dataset.word || span.textContent;
-        let entry = (span.dataset.dict==='1') ? { yomi:span.dataset.yomi, gloss:span.dataset.gloss } : null;
-
-        if(!entry){
-          const best = longestDictAt(lineText, pos);
-          if(best){ surface=best.text; entry=best.entry; }
-        }
+        let surface=span.dataset.word||span.textContent;
+        let entry=(span.dataset.dict==='1')?{yomi:span.dataset.yomi,gloss:span.dataset.gloss}:null;
+        if(!entry){ const best=longestDictAt(lineText, pos); if(best){ surface=best.text; entry=best.entry; } }
 
         pvWord.textContent = surface;
         pvReading.textContent = entry ? `Lectura: ${entry.yomi}` : 'Lectura: —';
@@ -400,14 +317,12 @@
         pop.style.left=(Math.min(rect.width-10, Math.max(10, e.clientX - rect.left + 8)))+'px';
         pop.style.top =(Math.min(rect.height-10, Math.max(10, e.clientY - rect.top + 8)) - 10)+'px';
 
-        // acciones
-        const q = encodeURIComponent(surface.trim());
-        $('#pv-copy').onclick = async()=>{ try{ await navigator.clipboard.writeText(surface); pvMeaning.textContent = entry ? `Significado: ${entry.gloss} (copiado)` : 'Copiado'; }catch{} };
-        $('#pv-google').onclick = ()=> window.open(`https://www.google.com/search?q=${q}`,'_blank');
-        $('#pv-jisho').onclick  = ()=> window.open(`https://jisho.org/search/${q}`,'_blank');
+        const q=encodeURIComponent(surface.trim());
+        $('#pv-copy').onclick=async()=>{ try{ await navigator.clipboard.writeText(surface); pvMeaning.textContent = entry ? `Significado: ${entry.gloss} (copiado)` : 'Copiado'; }catch{} };
+        $('#pv-google').onclick=()=> window.open(`https://www.google.com/search?q=${q}`,'_blank');
+        $('#pv-jisho').onclick =()=> window.open(`https://jisho.org/search/${q}`,'_blank');
       }, true);
 
-      // herramientas y atajos
       $('#btnTest').addEventListener('click', ()=>{ setSrc('https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4'); log('Cargando video de prueba MDN'); });
       $('#btnURL').addEventListener('click', ()=>{ const u=prompt('Pegá una URL directa a .mp4 (https://...)'); if(!u) return; setSrc(u.trim()); log('Cambié src a '+u); });
       document.addEventListener('keydown',(e)=>{ if(e.key==='j'||e.key==='J'){togJA.click()} if(e.key==='a'||e.key==='A'){togRO.click()} if(e.key==='e'||e.key==='E'){togES.click()} if(e.key==='g'||e.key==='G'){togFG.click()} });
