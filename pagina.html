@@ -75,12 +75,11 @@
 
     <div class="stage">
       <!-- MISMO ORIGEN: archivos locales del repo -->
-      <video id="video" preload="metadata" playsinline webkit-playsinline
-             poster="poster.jpg">
+      <video id="video" preload="metadata" playsinline webkit-playsinline poster="poster.jpg">
         <source id="src" src="video.mp4" type="video/mp4" />
-        <!-- Los .vtt deben comenzar con 'WEBVTT' y una línea en blanco -->
-        <track id="trk-es" label="Español" kind="subtitles" srclang="es" src="subs-es.vtt" default />
-        <track id="trk-ja" label="日本語"   kind="subtitles" srclang="ja" src="subs-ja.vtt" />
+        <!-- Dejá JA por defecto para que cargue la pista ni bien abre -->
+        <track id="trk-ja" label="日本語"   kind="subtitles" srclang="ja" src="subs-ja.vtt" default />
+        <track id="trk-es" label="Español" kind="subtitles" srclang="es" src="subs-es.vtt" />
         <track id="trk-ro" label="Rōmaji"  kind="subtitles" srclang="ro" src="subs-ro.vtt" />
         Tu navegador no soporta la etiqueta <code>video</code>.
       </video>
@@ -134,9 +133,10 @@
           <option value="1.75">1.75×</option>
           <option value="2">2×</option>
         </select>
-        <button class="btn" id="tog-ja"      title="Alternar Japonés" aria-pressed="false">JA</button>
+        <!-- Estados iniciales consistentes con showJA=true -->
+        <button class="btn" id="tog-ja"      title="Alternar Japonés" aria-pressed="true">JA</button>
         <button class="btn" id="tog-romaji"  title="Alternar Rōmaji" aria-pressed="false">RO</button>
-        <button class="btn" id="tog-es"      title="Alternar Español" aria-pressed="true">ES</button>
+        <button class="btn" id="tog-es"      title="Alternar Español" aria-pressed="false">ES</button>
         <button class="btn" id="fs"          title="Pantalla completa (F)" aria-label="Pantalla completa">⤢</button>
       </div>
     </div>
@@ -219,12 +219,15 @@
         es: trkES ? trkES.track : null
       };
 
-      // Esperar/forzar carga de pistas y diagnosticar
+      // Fuerza que las pistas se carguen (algunos navegadores si no están 'hidden' no las cargan)
+      Object.values(tracks).forEach(t=>{ if(t){ try{ t.mode='hidden'; }catch(e){} }});
+
+      // Diagnóstico/carga de pistas
       function armTrack(trkEl, name, pill){
         if(!trkEl){ log(`TRACK ${name}: no existe`); pill.textContent = `${name.toUpperCase()}: —`; return; }
         const t = trkEl.track;
         function setLoaded(){
-          t.mode = 'hidden'; // cargar cues sin mostrar nativo
+          t.mode = 'hidden';
           pill.textContent = `${name.toUpperCase()}: ok`;
           log(`TRACK ${name}: loaded (cues=${t.cues ? t.cues.length : 0})`);
           renderCue();
@@ -233,22 +236,22 @@
           pill.textContent = `${name.toUpperCase()}: error`;
           log(`TRACK ${name}: ERROR de carga (MIME/URL)`);
         }
-        // 0=NONE 1=LOADING 2=LOADED (algunos navegadores)
         if (trkEl.readyState === 2) setLoaded();
         else {
           trkEl.addEventListener('load', setLoaded, { once:true });
           trkEl.addEventListener('error', setError, { once:true });
         }
-        // Safari a veces no dispara 'load': intenta al reproducir
         video.addEventListener('loadeddata', ()=>{ if(t.cues && t.cues.length && t.mode!=='hidden'){ t.mode='hidden'; setLoaded(); }});
       }
-      armTrack(trkES, 'es', pillES);
       armTrack(trkJA, 'ja', pillJA);
+      armTrack(trkES, 'es', pillES);
       armTrack(trkRO, 'ro', pillRO);
 
-      const state={ showJA:false, showRO:false, showES:true };
+      // Mostrar JA por defecto
+      const state={ showJA:true, showRO:false, showES:false };
       function setToggle(btn,on){ btn.setAttribute('aria-pressed', on); }
       setToggle(togJA,state.showJA); setToggle(togRO,state.showRO); setToggle(togES,state.showES);
+
       togJA.addEventListener('click', ()=>{ state.showJA=!state.showJA; setToggle(togJA,state.showJA); renderCue(); });
       togRO.addEventListener('click', ()=>{ state.showRO=!state.showRO; setToggle(togRO,state.showRO); renderCue(); });
       togES.addEventListener('click', ()=>{ state.showES=!state.showES; setToggle(togES,state.showES); renderCue(); });
@@ -258,9 +261,7 @@
         const parts = text.split(/\n/);
         const out = [];
         for(const line of parts){
-          const tokens = mode==='ja'
-            ? [...line]
-            : line.split(/(\s+|[.,!?，。！”“"'…：:；;\-——()\[\]])/).filter(Boolean);
+          const tokens = mode==='ja' ? [...line] : line.split(/(\s+|[.,!?，。！”“"'…：:；;\-——()\[\]])/).filter(Boolean);
           out.push(tokens, '\n');
         }
         return out.flat();
