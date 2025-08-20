@@ -482,6 +482,47 @@ function clearROHighlight(){
   roBadgeEl=null;
 }
 
+  /* === HOVER: Japonés -> Romaji (solo si ambos están activos) === */
+capJA.addEventListener('mousemove', (e) => {
+  // Si no está encendido JA, no hacemos nada
+  if (!state.showJA) return;
+
+  const jaSpan = e.target.closest('.word-ja');
+
+  // Limpio highlight previo en JA siempre
+  clearJAHighlight();
+
+  // Si salí de una palabra => también limpio RO (si estaba activo) y me voy
+  if (!jaSpan) { 
+    if (state.showRO) clearROHighlight();
+    return; 
+  }
+
+  // 1) resalto el token de JA bajo el cursor
+  jaSpan.classList.add('hl');
+
+  // 2) sincronizo con RO solo cuando RO también está visible
+  if (!state.showRO) return;
+
+  // Calcular romaji: data-roma > data-yomi > texto (si está en ひらがな)
+  let romaji = jaSpan.dataset.roma || '';
+  let yomi   = jaSpan.dataset.yomi || '';
+  const txt  = jaSpan.textContent || '';
+
+  if (!yomi && /[\u3040-\u309F]/.test(txt)) yomi = txt; // si el texto está en hiragana
+  if (!romaji && yomi) romaji = hiraToRoma(yomi);
+
+  // Resalto en la línea de RO el/los token(s) que coinciden
+  if (romaji) highlightInRO(romaji);
+  else clearROHighlight();
+});
+
+// Cuando el mouse sale del bloque de JA, limpio ambos
+capJA.addEventListener('mouseleave', () => {
+  clearJAHighlight();
+  if (state.showRO) clearROHighlight();
+});
+
 // === HOVER en JAPONÉS → borde violeta + sincroniza con RO ===
 document.addEventListener('mousemove',(e)=>{
   if(!state.showJA) return;
@@ -754,28 +795,6 @@ document.addEventListener('mousemove', (e) => {
   else clearROHighlight();
 });
 
-  /* ======== HOVER: JA → RO ======== */
-  document.addEventListener('mousemove',(e)=>{
-    if(!capJA.contains(e.target)){
-      clearJAHighlight();
-      if(state.showRO) clearROHighlight();
-      return;
-    }
-    const jaSpan = e.target.closest('.word-ja');
-    if(!jaSpan){ clearJAHighlight(); if(state.showRO) clearROHighlight(); return; }
-
-    // highlight local en JA siempre
-    clearJAHighlight();
-    jaSpan.classList.add('hl');
-
-    // coordinar con RO solo si ambos visibles
-    if(!(state.showJA && state.showRO)){ clearROHighlight(); return; }
-
-    // intentar por lectura/diccionario, si no → fallback por X
-    const roma = romajiFromJASpan(jaSpan);
-    if(roma) highlightInRO(roma); else highlightROByX(e.clientX);
-  });
-
 // === HOVER en RŌMAJI → borde violeta + sincroniza JA ===
 document.addEventListener('mousemove', (e) => {
   if (!state.showRO) return;
@@ -984,6 +1003,7 @@ document.addEventListener('mouseleave', () => {
 </script>
 </body>
 </html>
+
 
 
 
