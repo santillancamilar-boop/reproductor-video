@@ -679,7 +679,77 @@ document.addEventListener('mouseleave', ()=>{
       }
     }
   });
+// === HOVER en JAPONÉS → borde violeta + sincroniza con RŌMAJI ===
+document.addEventListener('mousemove', (e)=>{
+  if (!(state.showJA && state.showRO)) return;
 
+  if(!capJA.contains(e.target)){
+    clearJAHighlight();
+    clearROHighlight();
+    return;
+  }
+
+  const jaSpan = e.target.closest('.word-ja');
+  if(!jaSpan){
+    clearJAHighlight();
+    clearROHighlight();
+    return;
+  }
+
+  // 1) borde violeta en el token bajo el cursor
+  clearJAHighlight();
+  jaSpan.classList.add('hl');
+
+  // 2) intentar n-grama y reflejar en RO
+  const toks = Array.from(capJA.querySelectorAll('.word-ja'));
+  const idx  = toks.indexOf(jaSpan);
+  const get  = i => (i>=0 && i<toks.length)? toks[i].dataset.word?.trim() : null;
+
+  let match=null, entry=null, key=null, win=null;
+  outer:
+  for (let w=4; w>=1; w--) {
+    for (let start=idx-(w-1); start<=idx; start++) {
+      if (start<0) continue;
+      const parts=[];
+      for (let k=0;k<w;k++){ const t=get(start+k); if(!t){ parts.length=0; break; } parts.push(t); }
+      if(!parts.length) continue;
+      const cand = parts.join('');
+      for (const k of DICT_KEYS) {
+        const e = JA_DICT[k]; if(!e || !e.ro) continue;
+        if (norm(k) === norm(cand)) { match=cand; entry=e; key=k; win={start, end:start+w-1}; break outer; }
+      }
+    }
+  }
+
+  if(match){
+    // n-grama en JA
+    for (let i=win.start; i<=win.end; i++) toks[i].classList.add('hl');
+
+    // reflejo en RO
+    clearROHighlight();
+    let found=false;
+    capRO.querySelectorAll('.word-ro').forEach(sp=>{
+      if(norm(sp.textContent) === norm(entry.ro)) {
+        sp.classList.add('hl');
+        found = true;
+      }
+    });
+
+    if(!found){
+      const wrap=capRO.querySelector('.line-ro');
+      const line=wrap?(wrap.textContent||''):''; 
+      const pos=line.indexOf(entry.ro);
+      if(pos>=0){
+        capRO.querySelectorAll('.word-ro').forEach(sp=>{
+          const s=Number(sp.dataset.start)||0, en=Number(sp.dataset.end)||0;
+          if(s<pos+entry.ro.length && en>pos) sp.classList.add('hl');
+        });
+      }
+    }
+  }
+});
+
+  
   // Herramientas y atajos
   $('#btnTest').addEventListener('click', ()=>{ setSrc('https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4'); log('Cargando video de prueba MDN'); });
   $('#btnURL').addEventListener('click', ()=>{ const u=prompt('Pegá una URL directa a .mp4 (https://...)'); if(!u) return; setSrc(u.trim()); log('Cambié src a '+u); });
@@ -688,6 +758,7 @@ document.addEventListener('mouseleave', ()=>{
 </script>
 </body>
 </html>
+
 
 
 
