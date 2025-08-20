@@ -465,6 +465,158 @@
   }
 
   /* ======== HOVER: JA → RO ======== */
+  // === HOVER en RŌMAJI → borde violeta + sincroniza con JA ===
+document.addEventListener('mousemove', (e)=>{
+  if(!state.showRO) return;
+
+  if(!capRO.contains(e.target)){
+    clearROHighlight();
+    if(state.showJA) clearJAHighlight();
+    return;
+  }
+
+  const roSpan = e.target.closest('.word-ro');
+  if(!roSpan){
+    clearROHighlight();
+    if(state.showJA) clearJAHighlight();
+    return;
+  }
+
+  // 1) borde violeta en el token bajo el cursor
+  clearROHighlight();
+  roSpan.classList.add('hl');
+
+  // 2) intentar n-grama y reflejar en JA
+  const toks = Array.from(capRO.querySelectorAll('.word-ro'));
+  const idx  = toks.indexOf(roSpan);
+  const get  = i => (i>=0 && i<toks.length)? toks[i].textContent.trim() : null;
+
+  let match=null, entry=null, key=null, win=null;
+  outer:
+  for (let w=4; w>=1; w--) {
+    for (let start=idx-(w-1); start<=idx; start++) {
+      if (start<0) continue;
+      const parts=[];
+      for (let k=0;k<w;k++){ const t=get(start+k); if(!t){ parts.length=0; break; } parts.push(t); }
+      if(!parts.length) continue;
+      const cand = parts.join(' ');
+      for (const k of DICT_KEYS) {
+        const e = JA_DICT[k]; if(!e || !e.ro) continue;
+        if (norm(e.ro) === norm(cand)) { match=cand; entry=e; key=k; win={start, end:start+w-1}; break outer; }
+      }
+    }
+  }
+
+  if(match){
+    // n-grama en RO
+    for (let i=win.start; i<=win.end; i++) toks[i].classList.add('hl');
+
+    // reflejo en JA
+    if(state.showJA){
+      clearJAHighlight();
+      let found=false;
+      capJA.querySelectorAll('.word-ja').forEach(sp=>{
+        if(sp.dataset.word===key){ sp.classList.add('hl'); found=true; }
+      });
+      if(!found){
+        const wrap=capJA.querySelector('.line-ja');
+        const line=wrap?(wrap.dataset.text||''):'';
+        const pos=line.indexOf(key);
+        if(pos>=0){
+          capJA.querySelectorAll('.word-ja').forEach(sp=>{
+            const s=Number(sp.dataset.start)||0, en=Number(sp.dataset.end)||0;
+            if(s<pos+key.length && en>pos) sp.classList.add('hl');
+          });
+        }
+      }
+    }
+  }
+});
+
+// Limpieza cuando el mouse sale del documento
+document.addEventListener('mouseleave', ()=>{
+  clearJAHighlight();
+  clearROHighlight();
+}, true);
+
+
+  // Click JA: popover + sincroniza RO
+  document.addEventListener('click',(e)=>{
+    if(!state.showJA) return;
+    if(!capJA.contains(e.target)) { if(!e.target.closest('#popover')) pop.style.display='none'; return; }
+
+    const span=e.target.closest('.word-ja'); if(!span) return;
+    const lineWrap=span.closest('.line-ja');
+    const lineText=lineWrap?lineWrap.dataset.text||'':'';
+    const start=Number(span.dataset.start)||0, end=Number(span.dataset.end)||start+(span.textContent||'').length;
+    const pos=Math.floor((start+end)/2);
+
+    let surface = span.dataset.word || span.textContent;
+    let entry = (span.dataset.dict==='1') ? {yomi:span.dataset.yomi,gloss:span.dataset.gloss,ro:span.dataset.roma,note:span.dataset.note} : null;
+
+    if(!entry){
+      const best=longestDictAt(lineText, pos);
+      if(best){ surface=best.text; entry={yomi:best.entry.yomi,gloss:best.entry.gloss,ro:best.entry.ro,note:best.entry.note}; }
+    }
+
+    pvWord.textContent = surface;
+    pvRead.textContent = 'Lectura: ' + (entry?.yomi || '—');
+    pvMeaning.textContent = 'Significado: ' + (entry?.gloss || '—') + (entry?.note ? ' · Uso: ' + entry.note : '');
+
+    const rect=player.getBoundingClientRect();
+    pop.style.display='block';
+    pop.style.left=(Math.min(rect.width-10, Math.max(10, e.clientX - rect.left + 8)))+'px';
+    pop.style.top =(Math.min(rect.height-10, Math.max(10, e.clientY - rect.top + 8)) - 10)+'px';
+
+    const romaOut = entry?.ro || (entry?.yomi ? hiraToRoma(entry.yomi) : '');
+    if(romaOut) highlightInRO(romaOut);
+  }, true);
+
+  /* Click en ROMAJI: popover con significado/uso (igual que en JA) */
+  document.addEventListener('click',(e)=>{
+    if(!state.showRO) return;
+    if(!capRO.contains(e.target)) return;
+    const roSpan = e.target.closest('.word-ro'); if(!roSpan) return;
+
+    const toks = Array.from(capRO.querySelectorAll('.word-ro'));
+    const idx  = toks.indexOf(roSpan);
+    const get  = i => (i>=0 && i<toks.length)? toks[i].textContent.trim() : null;
+
+    // Candidatos contiguos hasta 4 tokens
+    const candidates = [];
+    for (let w=4; w>=1; w--) {
+      for (let start=idx-(w-1); start<=idx; start++) {
+        if (start<0) continue;
+        const parts=[];
+        for (let k=0;k<w;k++){ const t=get(start+k); if(!t){ parts.length=0; break; } parts.push(t); }
+        if(parts.length) candidates.push({start, end:start+w-1, text:parts.join(' ')});
+      }
+    }
+
+    // Match con ro del diccionario
+    let match=null, entry=null, key=null, candText='';
+    const keysWithRO = DICT_KEYS.filter(k => JA_DICT[k]?.ro);
+    for (const cand of candidates) {
+      const cn = norm(cand.text);
+      for (const k of keysWithRO) {
+        if (norm(JA_DICT[k].ro) === cn) { match=cand; entry=JA_DICT[k]; key=k; candText=cand.text; break; }
+      }
+      if (match) break;
+    }
+    if(!entry) return;
+
+    // Popover
+    pvWord.textContent = key;
+    pvRead.textContent = 'Lectura: ' + (entry.yomi || '—');
+    pvMeaning.textContent = 'Significado: ' + (entry.gloss || '—') + (entry.note ? ' · Uso: ' + entry.note : '');
+    const rect=player.getBoundingClientRect();
+    pop.style.display='block';
+    pop.style.left=(Math.min(rect.width-10, Math.max(10, e.clientX - rect.left + 8)))+'px';
+    pop.style.top =(Math.min(rect.height-10, Math.max(10, e.clientY - rect.top + 8)) - 10)+'px';
+
+    // Highlight n-grama en RO
+    clearROHighlight();
+    for (let i = match.start; i <= match.end; i++) toks[i].classList.add('hl');
   // - Siempre resalta el token JA bajo el cursor
   // - Solo coordina con RO si JA y RO están activos a la vez
   document.addEventListener('mousemove',(e)=>{
@@ -530,6 +682,7 @@
 </script>
 </body>
 </html>
+
 
 
 
