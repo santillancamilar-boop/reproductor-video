@@ -2,16 +2,19 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <title>Reproductor DBZ — Pages (estable)</title>
+  <title>Reproductor DBZ — Pages</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     :root{ --bg:#f6f7fb; --ink:#2d2a32; --muted:#6b6a73; --panel:#ffffff; --edge:#e9e8f2; --accent:#b59bff; }
     *{box-sizing:border-box} html,body{height:100%}
-    body{ margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial; color:var(--ink);
-      background: radial-gradient(1000px 1000px at 10% -10%, #efeaff 0%, transparent 55%),
-                 radial-gradient(900px 900px at 100% 0%, #e3fff7 0%, transparent 55%),
-                 linear-gradient(180deg,var(--bg),#fdfcff 60%);
-      display:flex; align-items:center; justify-content:center; padding:24px; }
+    body{
+      margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial; color:var(--ink);
+      background:
+        radial-gradient(1000px 1000px at 10% -10%, #efeaff 0%, transparent 55%),
+        radial-gradient(900px 900px at 100% 0%, #e3fff7 0%, transparent 55%),
+        linear-gradient(180deg,var(--bg),#fdfcff 60%);
+      display:flex; align-items:center; justify-content:center; padding:24px;
+    }
     .player{ background:var(--panel); border:1px solid var(--edge); border-radius:22px; box-shadow:0 10px 30px rgba(23,15,41,.08); max-width:960px; width:100% }
     .header{ display:flex; align-items:center; justify-content:space-between; gap:12px; padding:14px 16px;
       background:linear-gradient(135deg, color-mix(in oklch,var(--accent), white 20%), color-mix(in oklch,var(--accent), black 8%)); color:#2b223d }
@@ -42,6 +45,7 @@
     .select{ padding:8px 10px; border-radius:12px; border:1px solid var(--edge); background:linear-gradient(180deg,#fff,#fafafe); color:var(--ink) }
     .foot{ color:var(--muted); font-size:13px; padding:0 16px 16px }
 
+    /* Subtítulos overlay */
     .captions{ position:absolute; left:0; right:0; bottom:6%; display:flex; flex-direction:column; gap:6px; align-items:center; padding:0 12px; z-index:5; pointer-events:auto }
     .cap-line{ max-width:min(86%, 900px); width:fit-content; color:#111; font-weight:600; letter-spacing:.2px; line-height:1.35; border-radius:14px; padding:8px 12px; box-shadow:0 6px 20px rgba(0,0,0,.16) }
     .track-ja{ background:rgba(255,255,255,.92) }
@@ -52,21 +56,19 @@
     .word-ja:hover{ background:rgba(0,0,0,.06) }
     .track-romaji .word, .track-es .word{ pointer-events:none; cursor:default }
 
-    .popover{ position:absolute; z-index:10; min-width:240px; max-width:360px; background:#fff; border:1px solid var(--edge); border-radius:14px; box-shadow:0 10px 30px rgba(0,0,0,.15); padding:10px 12px; display:none }
-    .popover .word{ font-weight:800; font-size:18px }
-    .popover .hint{ color:#6b6a73; font-size:12px; margin-top:4px }
+    /* Popover (solo JA) */
+    .popover{ position:absolute; z-index:10; min-width:220px; max-width:320px; background:#fff; border:1px solid var(--edge); border-radius:14px; box-shadow:0 10px 30px rgba(0,0,0,.15); padding:10px 12px; display:none }
+    .popover .word{ font-weight:800 } .popover .hint{ color:var(--muted); font-size:12px }
     .popover .meaning{ margin-top:6px }
 
     .diag{ padding:12px 16px; border-top:1px dashed var(--edge); font-size:13px; color:#4b5563; display:flex; gap:8px; flex-wrap:wrap }
     .pill{ padding:4px 8px; border-radius:999px; border:1px solid var(--edge); background:#f7f7ff; white-space:nowrap }
     .tools{ display:flex; gap:8px; padding:0 16px 16px; flex-wrap:wrap }
     .tools .btn{ height:auto; padding:8px 12px; width:auto }
-
-    ruby{ ruby-position:over; } rt{ font-size:.65em; color:#6b6a73 }
   </style>
 </head>
 <body>
-  <div class="player" id="player">
+  <div class="player" id="player" tabindex="0" aria-label="Reproductor de video con subtítulos y panel flotante">
     <div class="header">
       <h1 class="title">Proyecto integral — Reproductor</h1>
       <span class="badge" id="badgeDur">00:00</span>
@@ -75,9 +77,11 @@
     <div class="stage">
       <video id="video" preload="metadata" playsinline webkit-playsinline poster="poster.jpg">
         <source id="src" src="video.mp4" type="video/mp4" />
+        <!-- Pistas (mismo origen) -->
         <track id="trk-ja" label="日本語"   kind="subtitles" srclang="ja"      src="subs-ja.vtt" default />
         <track id="trk-ro" label="Rōmaji"  kind="subtitles" srclang="ja-Latn" src="subs-ro.vtt" />
         <track id="trk-es" label="Español" kind="subtitles" srclang="es"      src="subs-es.vtt" />
+        Tu navegador no soporta la etiqueta <code>video</code>.
       </video>
 
       <div class="center-play"><button class="btn-big" id="bigPlay" title="Reproducir">▶</button></div>
@@ -90,46 +94,45 @@
 
       <div class="popover" id="popover">
         <div><span class="word" id="pv-word">—</span></div>
-        <div class="hint" id="pv-reading"></div>
-        <div class="meaning" id="pv-meaning"></div>
-        <div class="actions" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
-          <button class="btn" id="pv-copy">Copiar</button>
-          <button class="btn" id="pv-google">Buscar</button>
-          <button class="btn" id="pv-jisho">Jisho</button>
-          <button class="btn" id="pv-close">Cerrar</button>
-        </div>
+        <div class="hint" id="pv-read">Lectura: —</div>
+        <div class="meaning" id="pv-meaning">Significado: —</div>
       </div>
     </div>
 
     <div class="controls" role="group" aria-label="Controles">
       <div class="row">
-        <button class="btn" id="back10" title="Retroceder 10s">⟲</button>
-        <button class="btn" id="play"   title="Reproducir/Pausar"><span id="icon-play">▶</span></button>
-        <button class="btn" id="fwd10"  title="Avanzar 10s">⟳</button>
+        <button class="btn" id="back10" title="Retroceder 10s" aria-label="Retroceder 10 segundos">⟲</button>
+        <button class="btn" id="play"   title="Reproducir/Pausar" aria-label="Reproducir"><span id="icon-play">▶</span></button>
+        <button class="btn" id="fwd10"  title="Avanzar 10s" aria-label="Avanzar 10 segundos">⟳</button>
       </div>
-      <div class="row seek">
+      <div class="row seek" aria-label="Barra de progreso">
         <div class="time" id="currentTime">0:00</div>
         <div class="range">
           <div class="buffered" id="bufferedBar"></div>
           <div class="progress" id="progressBar"></div>
-          <input id="seek" class="slider" type="range" min="0" max="1000" step="1" value="0" />
+          <input id="seek" class="slider" type="range" min="0" max="1000" step="1" value="0" aria-label="Buscar" />
         </div>
         <div class="time" id="duration">0:00</div>
       </div>
       <div class="row">
-        <button class="btn" id="mute" title="Silenciar/Activar">🔊</button>
-        <div class="vol"><input id="volume" class="vol-slider" type="range" min="0" max="1" step="0.01" value="1" /></div>
+        <button class="btn" id="mute" title="Silenciar/Activar" aria-label="Silenciar audio">🔊</button>
+        <div class="vol"><input id="volume" class="vol-slider" type="range" min="0" max="1" step="0.01" value="1" aria-label="Volumen" /></div>
       </div>
       <div class="row">
         <select id="speed" class="select" aria-label="Velocidad">
-          <option value="0.5">0.5×</option><option value="0.75">0.75×</option><option value="1" selected>1×</option>
-          <option value="1.25">1.25×</option><option value="1.5">1.5×</option><option value="1.75">1.75×</option><option value="2">2×</option>
+          <option value="0.5">0.5×</option>
+          <option value="0.75">0.75×</option>
+          <option value="1" selected>1×</option>
+          <option value="1.25">1.25×</option>
+          <option value="1.5">1.5×</option>
+          <option value="1.75">1.75×</option>
+          <option value="2">2×</option>
         </select>
-        <button class="btn" id="tog-ja"      aria-pressed="true">JA</button>
-        <button class="btn" id="tog-romaji"  aria-pressed="false">RO</button>
-        <button class="btn" id="tog-es"      aria-pressed="false">ES</button>
-        <button class="btn" id="tog-fg"      aria-pressed="false" title="Furigana inline">FG</button>
-        <button class="btn" id="fs"          title="Pantalla completa">⤢</button>
+        <!-- Independientes: podés combinar JA/RO/ES -->
+        <button class="btn" id="tog-ja"      title="Alternar Japonés" aria-pressed="true">JA</button>
+        <button class="btn" id="tog-romaji"  title="Alternar Rōmaji"  aria-pressed="false">RO</button>
+        <button class="btn" id="tog-es"      title="Alternar Español" aria-pressed="false">ES</button>
+        <button class="btn" id="fs"          title="Pantalla completa (F)" aria-label="Pantalla completa">⤢</button>
       </div>
     </div>
 
@@ -140,198 +143,265 @@
       <span class="pill" id="pillJA">JA: —</span>
       <span class="pill" id="pillRO">RO: —</span>
       <span class="pill" id="pillES">ES: —</span>
-      <span class="pill" id="envWarn" style="display:none;color:#b91c1c;border-color:#fda4af;background:#fff1f2">Abrí esta página desde GitHub Pages</span>
     </div>
     <div class="diag" id="diag"></div>
-    <div class="foot">Atajos: Espacio · ←/→ ±5s · ↑/↓ volumen · M mute · F pantalla completa · J/A/E alternar JA/RO/ES · G furigana</div>
+
+    <div class="foot">Atajos: <span class="kbd">Espacio</span> jugar/pausar · <span class="kbd">←/→</span> ±5s · <span class="kbd">↑/↓</span> volumen · <span class="kbd">M</span> mute · <span class="kbd">F</span> full screen · <span class="kbd">J/A/E</span> alternar JA/RO/ES · <span class="kbd">Esc</span> cerrar panel</div>
   </div>
 
   <script>
-  (function(){
-    const $=(s)=>document.querySelector(s);
-    const player=$('#player'), video=$('#video'), srcEl=$('#src');
-    const bigPlay=$('#bigPlay'), playBtn=$('#play'), iconPlay=$('#icon-play');
-    const back10=$('#back10'), fwd10=$('#fwd10'), seek=$('#seek'), progressBar=$('#progressBar'), bufferedBar=$('#bufferedBar');
-    const cur=$('#currentTime'), dur=$('#duration'), muteBtn=$('#mute'), vol=$('#volume'), speed=$('#speed'), fsBtn=$('#fs'), badgeDur=$('#badgeDur');
-    const diag=$('#diag'), statusSrc=$('#statusSrc'), envWarn=$('#envWarn');
-    const pillJA=$('#pillJA'), pillRO=$('#pillRO'), pillES=$('#pillES');
+    (function(){
+      const $ = (s)=>document.querySelector(s);
+      const player=$('#player'), video=$('#video'), srcEl=$('#src');
+      const bigPlay=$('#bigPlay'), playBtn=$('#play'), iconPlay=$('#icon-play');
+      const back10=$('#back10'), fwd10=$('#fwd10'), seek=$('#seek'), progressBar=$('#progressBar'), bufferedBar=$('#bufferedBar');
+      const cur=$('#currentTime'), dur=$('#duration'), muteBtn=$('#mute'), vol=$('#volume'), speed=$('#speed'), fs=$('#fs'), badgeDur=$('#badgeDur');
+      const diag=$('#diag'), statusSrc=$('#statusSrc');
+      const pillJA=$('#pillJA'), pillRO=$('#pillRO'), pillES=$('#pillES');
 
-    /* === ENTORNO: si no es GitHub Pages, pedimos abrir el host correcto === */
-    const GH_BASE = 'https://santillancamilar-boop.github.io/reproductor-video/';
-    const onGitHub = /github\.io$/i.test(location.host);
-    if(!onGitHub){
-      envWarn.style.display='inline-block';
-      envWarn.textContent = 'Abrí: ' + GH_BASE + 'pagina.html';
-    }
+      function log(msg){ diag.innerHTML = `[${new Date().toLocaleTimeString()}] ${msg}<br>` + diag.innerHTML; }
+      function setSrc(url){ srcEl.src=url; statusSrc.textContent='src: '+url; video.load(); }
 
-    const JA_DICT={ "孫悟飯":{yomi:"そんごはん",gloss:"Son Gohan (nombre propio)"},
-      "正しい":{yomi:"ただしい",gloss:"correcto; justo"}, "こと":{yomi:"こと",gloss:"cosa; hecho"},
-      "ために":{yomi:"ために",gloss:"para; por el bien de"}, "戦う":{yomi:"たたかう",gloss:"pelear; luchar"},
-      "罪":{yomi:"つみ",gloss:"pecado; culpa"}, "ではない":{yomi:"ではない",gloss:"no es; no ser"},
-      "話し合い":{yomi:"はなしあい",gloss:"diálogo; discusión"}, "通用しない":{yomi:"つうようしない",gloss:"no funciona; no surte efecto"},
-      "相手":{yomi:"あいて",gloss:"oponente"}, "精神":{yomi:"せいしん",gloss:"espíritu; mente"}, "光":{yomi:"ひかり",gloss:"luz"},
-      "自由に":{yomi:"じゆうに",gloss:"libremente"}, "解放してやれ":{yomi:"かいほうしてやれ",gloss:"libéralo"},
-      "気持ち":{yomi:"きもち",gloss:"sentimiento"}, "分かる":{yomi:"わかる",gloss:"entender"},
-      "もう":{yomi:"もう",gloss:"ya; más"}, "我慢する":{yomi:"がまんする",gloss:"aguantarse"},
-      "ことはない":{yomi:"ことはない",gloss:"no es necesario"} };
-    const DICT_KEYS=Object.keys(JA_DICT).sort((a,b)=>b.length-a.length);
+      function formatTime(s){ if(!isFinite(s)) return '0:00'; const h=Math.floor(s/3600), m=Math.floor((s%3600)/60), sec=String(Math.floor(s%60)).padStart(2,'0'); return (h>0? h+':'+String(m).padStart(2,'0'):m)+':'+sec; }
+      video.addEventListener('loadedmetadata',()=>{ dur.textContent=formatTime(video.duration); badgeDur.textContent=formatTime(video.duration); updateBuffered(); log('loadedmetadata OK'); });
+      video.addEventListener('canplay',()=> log('canplay'));
+      video.addEventListener('canplaythrough',()=> log('canplaythrough'));
+      video.addEventListener('stalled',()=> log('stalled'));
+      video.addEventListener('waiting',()=> log('waiting'));
+      video.addEventListener('suspend',()=> log('suspend (descargando)'));
+      video.addEventListener('error',()=>{
+        const code = video.error ? video.error.code : 'desconocido';
+        log('ERROR VIDEO code='+code+' (1=aborted,2=network,3=decode,4=src not supported)');
+        alert('No se puede reproducir el video. Código: '+code);
+      });
 
-    function log(msg){ diag.innerHTML=`[${new Date().toLocaleTimeString()}] ${msg}<br>`+diag.innerHTML; }
-    function setSrc(url){ srcEl.src=url; statusSrc.textContent='src: '+url; video.load(); }
+      function togglePlay(){ (video.paused||video.ended)?video.play():video.pause(); }
+      ;[playBtn, video, bigPlay].forEach(el=>el.addEventListener('click', togglePlay));
+      video.addEventListener('play', ()=>{ iconPlay.textContent='⏸'; bigPlay.style.display='none'; playBtn.setAttribute('aria-label','Pausar'); });
+      video.addEventListener('pause', ()=>{ iconPlay.textContent='▶';  bigPlay.style.display='grid'; playBtn.setAttribute('aria-label','Reproducir'); });
 
-    const fmt=(s)=>!isFinite(s)?'0:00':(s>=3600?Math.floor(s/3600)+':'+String(Math.floor(s%3600/60)).padStart(2,'0'):Math.floor(s/60)) + ':' + String(Math.floor(s%60)).padStart(2,'0');
-    video.addEventListener('loadedmetadata',()=>{ dur.textContent=fmt(video.duration); badgeDur.textContent=fmt(video.duration); updateBuffered(); log('loadedmetadata OK'); });
-    video.addEventListener('error',()=>{ const code=video.error?video.error.code:'?'; log('ERROR VIDEO code='+code); });
+      back10.addEventListener('click', ()=> video.currentTime=Math.max(0, (video.currentTime||0)-10));
+      fwd10 .addEventListener('click', ()=> video.currentTime=Math.min(video.duration||0, (video.currentTime||0)+10));
+      function updateTime(){ cur.textContent=formatTime(video.currentTime); const pct=(video.currentTime/(video.duration||1))*100; progressBar.style.width=pct+'%'; seek.value=Math.round((video.currentTime/(video.duration||1))*1000)||0; }
+      function updateBuffered(){ try{ if(video.buffered && video.buffered.length){ const end=video.buffered.end(video.buffered.length-1); bufferedBar.style.width=((end/(video.duration||1))*100)+'%'; } }catch(e){} }
+      video.addEventListener('timeupdate', updateTime);
+      video.addEventListener('progress', updateBuffered);
+      video.addEventListener('loadeddata', updateBuffered);
+      seek.addEventListener('input', ()=>{ video.currentTime=(seek.value/1000)*(video.duration||0); updateTime(); });
 
-    const togglePlay=()=> (video.paused||video.ended)?video.play():video.pause();
-    [playBtn, video, bigPlay].forEach(el=>el.addEventListener('click', togglePlay));
-    video.addEventListener('play', ()=>{ iconPlay.textContent='⏸'; bigPlay.style.display='none'; });
-    video.addEventListener('pause', ()=>{ iconPlay.textContent='▶';  bigPlay.style.display='grid'; });
-    back10.addEventListener('click', ()=> video.currentTime=Math.max(0,(video.currentTime||0)-10));
-    fwd10 .addEventListener('click', ()=> video.currentTime=Math.min(video.duration||0,(video.currentTime||0)+10));
-    const updateTime=()=>{ cur.textContent=fmt(video.currentTime); const p=(video.currentTime/(video.duration||1))*100; progressBar.style.width=p+'%'; seek.value=Math.round((video.currentTime/(video.duration||1))*1000)||0; };
-    const updateBuffered=()=>{ try{ if(video.buffered && video.buffered.length){ const end=video.buffered.end(video.buffered.length-1); bufferedBar.style.width=((end/(video.duration||1))*100)+'%'; } }catch(e){} };
-    video.addEventListener('timeupdate', updateTime); video.addEventListener('progress', updateBuffered); video.addEventListener('loadeddata', updateBuffered);
-    seek.addEventListener('input', ()=>{ video.currentTime=(seek.value/1000)*(video.duration||0); updateTime(); });
-    const updMute=()=>{ const l=video.muted||video.volume===0?0:video.volume; muteBtn.textContent=l===0?'🔇':(l<.5?'🔈':'🔊'); };
-    vol.addEventListener('input', ()=>{ video.volume=Number(vol.value); if(video.volume>0) video.muted=false; updMute(); });
-    muteBtn.addEventListener('click', ()=>{ video.muted=!video.muted; updMute(); });
-    video.addEventListener('volumechange', updMute); updMute();
-    speed.addEventListener('change', ()=>{ video.playbackRate=Number(speed.value); });
-    fsBtn.addEventListener('click', ()=>{ if(document.fullscreenElement) document.exitFullscreen(); else player.requestFullscreen().catch(()=>{}); });
+      function updateMuteIcon(){ const level=video.muted||video.volume===0?0:video.volume; muteBtn.textContent= level===0?'🔇':(level<.5?'🔈':'🔊'); }
+      vol.addEventListener('input', ()=>{ video.volume=Number(vol.value); if(video.volume>0) video.muted=false; updateMuteIcon(); });
+      muteBtn.addEventListener('click', ()=>{ video.muted=!video.muted; updateMuteIcon(); });
+      video.addEventListener('volumechange', updateMuteIcon); updateMuteIcon();
 
-    const capJA=$('#cap-ja'), capRO=$('#cap-romaji'), capES=$('#cap-es');
-    const trkJA=$('#trk-ja'), trkRO=$('#trk-ro'), trkES=$('#trk-es');
-    const togJA=$('#tog-ja'), togRO=$('#tog-romaji'), togES=$('#tog-es'), togFG=$('#tog-fg');
+      speed.addEventListener('change', ()=>{ video.playbackRate=Number(speed.value); });
+      function toggleFS(){ if(document.fullscreenElement) document.exitFullscreen(); else player.requestFullscreen().catch(()=>{}); }
+      fs.addEventListener('click', toggleFS);
 
-    const tracks={ ja:trkJA?.track||null, ro:trkRO?.track||null, es:trkES?.track||null };
-    Object.values(tracks).forEach(t=>{ if(t){ try{ t.mode='hidden'; }catch(_){}});
+      const capJA=$('#cap-ja'), capRO=$('#cap-romaji'), capES=$('#cap-es');
+      const trkJA=$('#trk-ja'), trkRO=$('#trk-ro'), trkES=$('#trk-es');
+      const togJA=$('#tog-ja'), togRO=$('#tog-romaji'), togES=$('#tog-es');
 
-    function armTrack(el,name,pill){
-      if(!el){ pill.textContent=`${name.toUpperCase()}: —`; return; }
-      const t=el.track;
-      function ok(){ pill.textContent=`${name.toUpperCase()}: ok (${t.cues?t.cues.length:0})`; renderCue(); }
-      function err(){ pill.textContent=`${name.toUpperCase()}: error`; }
-      if(el.readyState===2) ok(); else{ el.addEventListener('load',ok,{once:true}); el.addEventListener('error',err,{once:true}); }
-    }
-    armTrack(trkJA,'ja',pillJA); armTrack(trkRO,'ro',pillRO); armTrack(trkES,'es',pillES);
+      const tracks={ ja:trkJA?.track || null, ro:trkRO?.track || null, es:trkES?.track || null };
+      Object.values(tracks).forEach(t=>{ if(t){ try{ t.mode='hidden'; }catch(_){} } });
 
-    const state={ showJA:true, showRO:false, showES:false, showFG:false };
-    const setPressed=(b,on)=>b.setAttribute('aria-pressed',on);
-    const syncPress=()=>{ setPressed(togJA,state.showJA); setPressed(togRO,state.showRO); setPressed(togES,state.showES); setPressed(togFG,state.showFG); };
-    syncPress();
-    togJA.addEventListener('click',()=>{ state.showJA=!state.showJA; syncPress(); renderCue(); });
-    togRO.addEventListener('click',()=>{ state.showRO=!state.showRO; syncPress(); renderCue(); });
-    togES.addEventListener('click',()=>{ state.showES=!state.showES; syncPress(); renderCue(); });
-    togFG.addEventListener('click',()=>{ state.showFG=!state.showFG; syncPress(); renderCue(); });
-
-    const segJA=(typeof Intl!=='undefined' && Intl.Segmenter) ? new Intl.Segmenter('ja',{granularity:'word'}) : null;
-
-    function sliceWithDict(line){
-      const parts=[]; let i=0;
-      while(i<line.length){
-        let matched=null; for(const k of DICT_KEYS){ if(line.startsWith(k,i)){ matched=k; break; } }
-        if(matched){ const e=JA_DICT[matched]; parts.push({type:'dict',text:matched,yomi:e.yomi,gloss:e.gloss,start:i,end:i+matched.length}); i+=matched.length; }
-        else { parts.push({type:'char',text:line[i],start:i,end:i+1}); i++; }
+      // Píldoras de diagnóstico
+      function armTrack(el, name, pill){
+        if(!el){ pill.textContent = `${name.toUpperCase()}: —`; return; }
+        const t = el.track;
+        function ok(){ pill.textContent = `${name.toUpperCase()}: ok (${t.cues?t.cues.length:0})`; log(`TRACK ${name}: loaded`); renderCue(); }
+        function err(){ pill.textContent = `${name.toUpperCase()}: error`; log(`TRACK ${name}: error`); }
+        if (el.readyState === 2) ok(); else { el.addEventListener('load', ok, {once:true}); el.addEventListener('error', err, {once:true}); }
       }
-      return parts;
-    }
-    function tokenizeJA(line){
-      const raw=sliceWithDict(line);
-      if(!segJA) return raw.map(p=> p.type==='dict' ? {text:p.text,start:p.start,end:p.end,dict:{yomi:p.yomi,gloss:p.gloss}} : {text:p.text,start:p.start,end:p.end});
-      const out=[]; let buffer='', bStart=null;
-      const flush=()=>{
-        if(!buffer) return; let pos=0;
-        for(const it of segJA.segment(buffer)){
-          const s=it.segment; const st=bStart + buffer.indexOf(s,pos); const en=st+s.length; pos = buffer.indexOf(s,pos)+s.length;
-          out.push({text:s,start:st,end:en});
-        }
-        buffer=''; bStart=null;
+      armTrack(trkJA,'ja',pillJA); armTrack(trkRO,'ro',pillRO); armTrack(trkES,'es',pillES);
+
+      // Estado inicial (independiente, permite combinar)
+      const state={ showJA:true, showRO:false, showES:false };
+      function setToggle(btn,on){ btn.setAttribute('aria-pressed', on); }
+      function syncToggles(){ setToggle(togJA,state.showJA); setToggle(togRO,state.showRO); setToggle(togES,state.showES); }
+      syncToggles();
+
+      togJA.addEventListener('click', ()=>{ state.showJA=!state.showJA; syncToggles(); renderCue(); });
+      togRO.addEventListener('click', ()=>{ state.showRO=!state.showRO; syncToggles(); renderCue(); });
+      togES.addEventListener('click', ()=>{ state.showES=!state.showES; syncToggles(); renderCue(); });
+
+      /* ======== Diccionario mínimo (frases provistas) ======== */
+      const JA_DICT={
+        "孫悟飯":{yomi:"そんごはん",gloss:"Son Gohan (nombre propio)"},
+        "正しい":{yomi:"ただしい",gloss:"correcto; justo"},
+        "こと":{yomi:"こと",gloss:"cosa; hecho"},
+        "ために":{yomi:"ために",gloss:"para; por el bien de"},
+        "戦う":{yomi:"たたかう",gloss:"pelear; luchar"},
+        "罪":{yomi:"つみ",gloss:"pecado; culpa"},
+        "ではない":{yomi:"ではない",gloss:"no es; no ser"},
+        "話し合い":{yomi:"はなしあい",gloss:"diálogo; discusión"},
+        "通用しない":{yomi:"つうようしない",gloss:"no funciona; no surte efecto"},
+        "相手":{yomi:"あいて",gloss:"oponente; interlocutor"},
+        "精神":{yomi:"せいしん",gloss:"espíritu; mente"},
+        "光":{yomi:"ひかり",gloss:"luz"},
+        "自由に":{yomi:"じゆうに",gloss:"libremente"},
+        "解放してやれ":{yomi:"かいほうしてやれ",gloss:"libéralo / déjalo libre"},
+        "気持ち":{yomi:"きもち",gloss:"sentimiento"},
+        "分かる":{yomi:"わかる",gloss:"entender"},
+        "もう":{yomi:"もう",gloss:"ya / más"},
+        "我慢する":{yomi:"がまんする",gloss:"aguantarse / soportar"},
+        "ことはない":{yomi:"ことはない",gloss:"no hace falta / no es necesario"}
       };
-      for(const p of raw){
-        if(p.type==='dict'){ flush(); out.push({text:p.text,start:p.start,end:p.end,dict:{yomi:p.yomi,gloss:p.gloss}}); }
-        else { if(!buffer){ buffer=p.text; bStart=p.start; } else buffer+=p.text; }
-      }
-      flush(); return out;
-    }
+      const DICT_KEYS=Object.keys(JA_DICT).sort((a,b)=>b.length-a.length);
 
-    function renderLine(track, el, mode){
-      const show=(state.showJA&&mode==='ja')||(state.showRO&&mode==='ro')||(state.showES&&mode==='es');
-      if(!show){ el.hidden=true; el.innerHTML=''; return; }
-      let cue=null;
-      if(track?.activeCues?.length) cue=track.activeCues[0];
-      else if(track?.cues?.length){ const t=video.currentTime; for(let i=0;i<track.cues.length;i++){ const c=track.cues[i]; if(t>=c.startTime && t<=c.endTime){ cue=c; break; } } }
-      if(!cue){ el.hidden=true; el.innerHTML=''; return; }
+      // Segmentación: prioriza el diccionario; el resto usa Intl.Segmenter('ja','word') si está disponible
+      const segJA = (typeof Intl!=='undefined' && Intl.Segmenter)? new Intl.Segmenter('ja',{granularity:'word'}) : null;
 
-      el.hidden=false; el.innerHTML='';
-      const lines=cue.text.split(/\r?\n/);
-      for(let li=0; li<lines.length; li++){
-        const lineText=lines[li];
-        if(mode==='ja'){
-          const tokens=tokenizeJA(lineText);
-          const lineWrap=document.createElement('span'); lineWrap.className='line-ja'; lineWrap.dataset.text=lineText;
-          tokens.forEach(tok=>{
-            const sp=document.createElement('span'); sp.className='word-ja'; sp.dataset.word=tok.text.trim(); sp.dataset.start=tok.start; sp.dataset.end=tok.end;
-            if(tok.dict && state.showFG){ sp.innerHTML=`<ruby><rb>${tok.text}</rb><rt>${tok.dict.yomi}</rt></ruby>`; }
-            else { sp.textContent=tok.text; }
-            if(tok.dict){ sp.dataset.yomi=tok.dict.yomi; sp.dataset.gloss=tok.dict.gloss; sp.dataset.dict='1'; } else { sp.dataset.dict='0'; }
-            lineWrap.appendChild(sp);
-          });
-          el.appendChild(lineWrap);
-        }else{
-          el.appendChild(document.createTextNode(lineText));
+      function sliceWithDict(line){
+        const out=[]; let i=0;
+        while(i<line.length){
+          let m=null;
+          for(const k of DICT_KEYS){ if(line.startsWith(k,i)){ m=k; break; } }
+          if(m){ const e=JA_DICT[m]; out.push({text:m, dict:e, start:i, end:i+m.length}); i+=m.length; }
+          else{ out.push({text:line[i], start:i, end:i+1}); i++; }
         }
-        if(li<lines.length-1) el.appendChild(document.createElement('br'));
+        return out;
       }
-    }
-    function renderCue(){ renderLine(tracks.ja,$('#cap-ja'),'ja'); renderLine(tracks.ro,$('#cap-romaji'),'ro'); renderLine(tracks.es,$('#cap-es'),'es'); }
-    Object.values(tracks).forEach(t=>{ t && t.addEventListener('cuechange', renderCue); });
-    ["timeupdate","seeked","ratechange"].forEach(ev=>video.addEventListener(ev, renderCue));
-    window.addEventListener('load', renderCue);
 
-    const pop=$('#popover'), pvWord=$('#pv-word'), pvReading=$('#pv-reading'), pvMeaning=$('#pv-meaning');
-    $('#pv-close').addEventListener('click', ()=> pop.style.display='none');
-    document.addEventListener('keydown',(e)=>{ if(e.key==='Escape') pop.style.display='none'; });
-    document.addEventListener('click',(e)=>{ if(!e.target.closest('#popover') && !e.target.closest('#captions')) pop.style.display='none'; }, true);
-
-    const DICT_KEYS_ALL = DICT_KEYS; // ya ordenado largo→corto
-    function longestDictAt(line, pos){
-      let best=null;
-      for(const k of DICT_KEYS_ALL){
-        const i=line.indexOf(k);
-        if(i!==-1 && i<=pos && pos<i+k.length){ if(!best || k.length>best.text.length) best={text:k,start:i,end:i+k.length,entry:JA_DICT[k]}; }
+      function segmentJapanese(line){
+        const raw=sliceWithDict(line);
+        if(!segJA){ // sin Segmenter: devolvemos lo que haya (dict o caracteres)
+          return raw.map(p=> ({text:p.text, start:p.start, end:p.end, dict:p.dict||null}));
+        }
+        const out=[]; let buffer='', bStart=null;
+        const flush=()=>{
+          if(!buffer) return;
+          let pos=0;
+          for(const it of segJA.segment(buffer)){
+            const seg=it.segment;
+            const st=bStart + buffer.indexOf(seg,pos);
+            const en=st+seg.length;
+            pos = buffer.indexOf(seg,pos)+seg.length;
+            out.push({text:seg, start:st, end:en, dict:null});
+          }
+          buffer=''; bStart=null;
+        };
+        for(const p of raw){
+          if(p.dict){ flush(); out.push({text:p.text,start:p.start,end:p.end,dict:p.dict}); }
+          else{ if(buffer===''){ buffer=p.text; bStart=p.start; } else buffer+=p.text; }
+        }
+        flush();
+        return out;
       }
-      return best;
-    }
-    document.addEventListener('click',(e)=>{
-      const capJA=$('#cap-ja'); if(!state.showJA || !capJA.contains(e.target)) return;
-      const span=e.target.closest('.word-ja'); if(!span) return;
-      const lineWrap=span.closest('.line-ja'); const lineText=lineWrap?lineWrap.dataset.text||'':span.textContent;
-      const start=Number(span.dataset.start)||0; const end=Number(span.dataset.end)||start+(span.textContent||'').length; const pos=Math.floor((start+end)/2);
-      let surface=span.dataset.word||span.textContent;
-      let entry=(span.dataset.dict==='1')?{yomi:span.dataset.yomi,gloss:span.dataset.gloss}:null;
-      if(!entry){ const best=longestDictAt(lineText, pos); if(best){ surface=best.text; entry=best.entry; } }
-      pvWord.textContent = surface;
-      pvReading.textContent = entry ? `Lectura: ${entry.yomi}` : 'Lectura: —';
-      pvMeaning.textContent = entry ? `Significado: ${entry.gloss}` : 'Significado: (sin entrada en diccionario)';
-      const rect=player.getBoundingClientRect();
-      pop.style.display='block';
-      pop.style.left=(Math.min(rect.width-10, Math.max(10, e.clientX - rect.left + 8)))+'px';
-      pop.style.top =(Math.min(rect.height-10, Math.max(10, e.clientY - rect.top + 8)) - 10)+'px';
-      const q=encodeURIComponent(surface.trim());
-      $('#pv-copy').onclick=async()=>{ try{ await navigator.clipboard.writeText(surface); pvMeaning.textContent = entry ? `Significado: ${entry.gloss} (copiado)` : 'Copiado'; }catch{} };
-      $('#pv-google').onclick=()=> window.open(`https://www.google.com/search?q=${q}`,'_blank');
-      $('#pv-jisho').onclick =()=> window.open(`https://jisho.org/search/${q}`,'_blank');
-    }, true);
 
-    $('#btnTest').addEventListener('click', ()=>{ setSrc('https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4'); log('Cargando video de prueba MDN'); });
-    $('#btnURL').addEventListener('click', ()=>{ const u=prompt('Pegá una URL directa a .mp4 (https://...)'); if(!u) return; setSrc(u.trim()); });
+      function renderLine(track, el, mode){
+        const show=(state.showJA&&mode==='ja')||(state.showRO&&mode==='ro')||(state.showES&&mode==='es');
+        if(!show){ el.hidden=true; el.innerHTML=''; return; }
 
-  })();
+        // Tomar cue activo (o buscar por tiempo)
+        let cue=null;
+        if(track?.activeCues?.length) cue=track.activeCues[0];
+        else if(track?.cues?.length){
+          const t=video.currentTime;
+          for(let i=0;i<track.cues.length;i++){ const c=track.cues[i]; if(t>=c.startTime && t<=c.endTime){ cue=c; break; } }
+        }
+        if(!cue){ el.hidden=true; el.innerHTML=''; return; }
+
+        el.hidden=false; el.innerHTML='';
+        const lines = cue.text.split(/\r?\n/);
+        for(let li=0; li<lines.length; li++){
+          const lineText = lines[li];
+          if(mode==='ja'){
+            // → tokenización por palabra (con diccionario y Segmenter)
+            const tokens = segmentJapanese(lineText);
+            const lineWrap = document.createElement('span');
+            lineWrap.className='line-ja';
+            lineWrap.dataset.text=lineText;
+
+            tokens.forEach(tok=>{
+              const sp=document.createElement('span');
+              sp.className='word-ja';
+              sp.textContent=tok.text;
+              sp.dataset.word=tok.text.trim();
+              sp.dataset.start=tok.start;
+              sp.dataset.end=tok.end;
+              if(tok.dict){
+                sp.dataset.dict='1';
+                sp.dataset.yomi=tok.dict.yomi;
+                sp.dataset.gloss=tok.dict.gloss;
+              } else {
+                sp.dataset.dict='0';
+              }
+              lineWrap.appendChild(sp);
+            });
+            el.appendChild(lineWrap);
+          } else {
+            // RO / ES: texto plano (no clicable)
+            el.appendChild(document.createTextNode(lineText));
+          }
+          if(li<lines.length-1) el.appendChild(document.createElement('br'));
+        }
+      }
+
+      function renderCue(){ renderLine(tracks.ja,capJA,'ja'); renderLine(tracks.ro,capRO,'ro'); renderLine(tracks.es,capES,'es'); }
+      Object.values(tracks).forEach(t=>{ t && t.addEventListener('cuechange', renderCue); });
+      video.addEventListener('timeupdate', renderCue);
+      video.addEventListener('seeked', renderCue);
+      video.addEventListener('ratechange', renderCue);
+      window.addEventListener('load', renderCue);
+
+      // Popover SOLO para japonés (usa dict; si no hay, intenta mejor coincidencia en la línea)
+      const pop=$('#popover'), pvWord=$('#pv-word'), pvRead=$('#pv-read'), pvMeaning=$('#pv-meaning');
+
+      function longestDictAt(line, pos){
+        let best=null;
+        for(const k of DICT_KEYS){
+          const i=line.indexOf(k);
+          if(i!==-1 && i<=pos && pos<i+k.length){
+            if(!best || k.length>best.text.length) best={text:k,start:i,end:i+k.length,entry:JA_DICT[k]};
+          }
+        }
+        return best;
+      }
+
+      document.addEventListener('click',(e)=>{
+        if(!state.showJA) return;
+        if(!capJA.contains(e.target)) { if(!e.target.closest('#popover')) pop.style.display='none'; return; }
+
+        const span=e.target.closest('.word-ja'); if(!span) return;
+        const lineWrap=span.closest('.line-ja');
+        const lineText=lineWrap?lineWrap.dataset.text||'':'';
+        const start=Number(span.dataset.start)||0, end=Number(span.dataset.end)||start+(span.textContent||'').length;
+        const pos=Math.floor((start+end)/2);
+
+        let surface = span.dataset.word || span.textContent;
+        let entry = (span.dataset.dict==='1') ? {yomi:span.dataset.yomi,gloss:span.dataset.gloss} : null;
+
+        // Si el token clickeado no estaba en el diccionario, probá la mejor coincidencia de toda la línea
+        if(!entry){
+          const best=longestDictAt(lineText, pos);
+          if(best){ surface=best.text; entry=best.entry; }
+        }
+
+        pvWord.textContent = surface;
+        pvRead.textContent = 'Lectura: ' + (entry? entry.yomi : '—');
+        pvMeaning.textContent = 'Significado: ' + (entry? entry.gloss : '(sin entrada en diccionario)');
+
+        const rect=player.getBoundingClientRect();
+        pop.style.display='block';
+        pop.style.left=(Math.min(rect.width-10, Math.max(10, e.clientX - rect.left + 8)))+'px';
+        pop.style.top =(Math.min(rect.height-10, Math.max(10, e.clientY - rect.top + 8)) - 10)+'px';
+      }, true);
+
+      document.addEventListener('keydown',(e)=>{ if(e.key==='Escape') pop.style.display='none'; });
+      document.addEventListener('click',(e)=>{ if(!e.target.closest('#popover') && !e.target.closest('#captions')) pop.style.display='none'; });
+
+      // Herramientas
+      $('#btnTest').addEventListener('click', ()=>{ setSrc('https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4'); log('Cargando video de prueba MDN'); });
+      $('#btnURL').addEventListener('click', ()=>{ const u=prompt('Pegá una URL directa a .mp4 (https://...)'); if(!u) return; setSrc(u.trim()); log('Cambié src a '+u); });
+
+      // Atajos
+      document.addEventListener('keydown',(e)=>{
+        if(e.key==='j' || e.key==='J'){ togJA.click(); }
+        if(e.key==='a' || e.key==='A'){ togRO.click(); }
+        if(e.key==='e' || e.key==='E'){ togES.click(); }
+      });
+    })();
   </script>
 </body>
 </html>
-
-
-
-
