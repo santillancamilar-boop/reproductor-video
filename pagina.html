@@ -472,6 +472,68 @@
   }
 
   // Hover en JA → resalta RO
+  // --- HOVER en RŌMAJI → resalta la parte correspondiente en JAPO ---
+function clearJAHighlight(){ capJA.querySelectorAll('.hl').forEach(el=>el.classList.remove('hl')); }
+
+document.addEventListener('mousemove', (e)=>{
+  if(!state.showRO || !state.showJA) return;               // necesitamos ver RO y JA
+  if(!capRO.contains(e.target)) { clearJAHighlight(); return; }
+
+  const roSpan = e.target.closest('.word-ro');
+  if(!roSpan){ clearJAHighlight(); return; }
+
+  const toks = Array.from(capRO.querySelectorAll('.word-ro'));
+  const idx  = toks.indexOf(roSpan);
+  const get  = i => (i>=0 && i<toks.length)? toks[i].textContent.trim() : null;
+
+  // Generamos n-gramas contiguos centrados en el hover (4→1) p.ej. "tsuuyou shinai"
+  let match=null, entry=null, key=null, win=null;
+  outer:
+  for (let w=4; w>=1; w--) {
+    for (let start=idx-(w-1); start<=idx; start++) {
+      if (start<0) continue;
+      const parts=[];
+      for (let k=0;k<w;k++){ const t=get(start+k); if(!t){ parts.length=0; break; } parts.push(t); }
+      if(!parts.length) continue;
+
+      const cand = parts.join(' ');
+      for (const k of DICT_KEYS) {
+        const e = JA_DICT[k]; if(!e || !e.ro) continue;
+        if (norm(e.ro) === norm(cand)) { match=cand; entry=e; key=k; win={start, end:start+w-1}; break outer; }
+      }
+    }
+  }
+
+  // Limpiamos y aplicamos highlight si hubo match
+  clearROHighlight();
+  clearJAHighlight();
+  if(!entry) return;
+
+  // 1) Resalta todos los tokens del n-grama en RO
+  for (let i=win.start; i<=win.end; i++) toks[i].classList.add('hl');
+
+  // 2) Resalta en JA
+  //   a) Preferencia: spans cuyo dataset.word coincide exactamente con la clave del diccionario (p.ej. "通用しない", "のが")
+  let found=false;
+  const jaSpans = Array.from(capJA.querySelectorAll('.word-ja'));
+  jaSpans.forEach(sp=>{
+    if (sp.dataset.word === key) { sp.classList.add('hl'); found=true; }
+  });
+
+  //   b) Fallback: localizar la subcadena en el texto de la línea y marcar los spans que se solapan
+  if(!found){
+    const wrap = capJA.querySelector('.line-ja');
+    const line = wrap ? (wrap.dataset.text || '') : '';
+    const pos  = line.indexOf(key);
+    if (pos >= 0) {
+      jaSpans.forEach(sp=>{
+        const s = Number(sp.dataset.start)||0, en = Number(sp.dataset.end)||0;
+        if (s < pos + key.length && en > pos) sp.classList.add('hl');
+      });
+    }
+  }
+});
+
   document.addEventListener('mousemove',(e)=>{
     if(!state.showJA || !capJA.contains(e.target)) return;
     const span=e.target.closest('.word-ja'); if(!span) { clearROHighlight(); return; }
@@ -594,6 +656,7 @@
 </script>
 </body>
 </html>
+
 
 
 
