@@ -571,6 +571,49 @@ document.addEventListener('mouseleave', ()=>{
   clearROHighlight();
 }, true);
 
+document.addEventListener('mousemove',(e)=>{
+  if(!state.showJA) return;
+  if(!capJA.contains(e.target)){ clearJAHighlight(); return; }
+
+  const jaSpan = e.target.closest('.word-ja');
+  if(!jaSpan){ clearJAHighlight(); return; }
+
+  clearJAHighlight();
+  jaSpan.classList.add('hl');
+
+  // Buscar entrada como en el click
+  const lineWrap = jaSpan.closest('.line-ja');
+  const lineText = lineWrap ? lineWrap.dataset.text || '' : '';
+  const start = Number(jaSpan.dataset.start) || 0;
+  const end = Number(jaSpan.dataset.end) || start + (jaSpan.textContent || '').length;
+  const pos = Math.floor((start + end) / 2);
+
+  let surface = jaSpan.dataset.word || jaSpan.textContent;
+  let entry = (jaSpan.dataset.dict === '1') ? {
+    yomi: jaSpan.dataset.yomi,
+    gloss: jaSpan.dataset.gloss,
+    ro: jaSpan.dataset.roma,
+    note: jaSpan.dataset.note
+  } : null;
+
+  if (!entry) {
+    const best = longestDictAt(lineText, pos);
+    if (best) {
+      surface = best.text;
+      entry = {
+        yomi: best.entry.yomi,
+        gloss: best.entry.gloss,
+        ro: best.entry.ro,
+        note: best.entry.note
+      };
+    }
+  }
+
+  const romaOut = entry?.ro || (entry?.yomi ? hiraToRoma(entry.yomi) : '');
+  if (romaOut) highlightInRO(romaOut);
+  else clearROHighlight();
+});  
+
 // === CLICK EN JAPONÉS → popover + sincroniza RO ===
 document.addEventListener('click',(e)=>{
   if(!state.showJA) return;
@@ -680,6 +723,7 @@ document.addEventListener('click',(e)=>{
 </script>
 </body>
 </html>
+
 
 
 
