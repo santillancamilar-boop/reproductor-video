@@ -229,7 +229,7 @@
   togES.addEventListener('click', ()=>{ state.showES=!state.showES; syncToggles(); renderCue(); });
   togFG.addEventListener('click', ()=>{ state.showFG=!state.showFG; syncToggles(); renderCue(); });
 
-  /* ======== Diccionario (incluye partículas con uso) ======== */
+  /* ======== Diccionario (incluye partículas + uso) ======== */
   const JA_DICT={
     "孫悟飯":{yomi:"そんごはん",gloss:"Son Gohan (nombre propio)",ro:"son gohan"},
     "正しい":{yomi:"ただしい",gloss:"correcto; justo",ro:"tadashii"},
@@ -240,23 +240,23 @@
     "ではない":{yomi:"ではない",gloss:"no es; no ser (neg. de だ)",ro:"de wa nai"},
     "話し合い":{yomi:"はなしあい",gloss:"diálogo; discusión",ro:"hanashiai"},
     "など":{yomi:"など",gloss:"etc.; cosas como ~",ro:"nado"},
-    "通用しない":{yomi:"つうようしない",gloss:"no funciona; no surte efecto",ro:"tsuyou shinai"},
+    /* 🔧 importante: macrones en el ro para matchear “Tsūyō shinai” */
+    "通用しない":{yomi:"つうようしない",gloss:"no funciona; no surte efecto",ro:"tsūyō shinai"},
     "相手":{yomi:"あいて",gloss:"oponente; interlocutor",ro:"aite"},
     "もいるのだ":{yomi:"もいるのだ",gloss:"también hay/existen (explicativo)",ro:"mo iru no da"},
     "いるのだ":{yomi:"いるのだ",gloss:"(alguien) está/hay (explicativo)",ro:"iru no da"},
     "精神":{yomi:"せいしん",gloss:"espíritu; mente",ro:"seishin"},
     "光":{yomi:"ひかり",gloss:"luz",ro:"hikari"},
     "まま":{yomi:"まま",gloss:"tal cual; manteniendo el estado",ro:"mama",note:"X のまま = 'tal como X / manteniendo X'."},
-    "自由に":{yomi:"じゆうに",gloss:"libremente",ro:"jiyuu ni"},
-    "解放してやれ":{yomi:"かいほうしてやれ",gloss:"libéralo / déjalo libre",ro:"kaihou shite yare"},
+    "自由に":{yomi:"じゆうに",gloss:"libremente",ro:"jiyū ni"},
+    "解放してやれ":{yomi:"かいほうしてやれ",gloss:"libéralo / déjalo libre",ro:"kaihō shite yare"},
     "気持ち":{yomi:"きもち",gloss:"sentimiento",ro:"kimochi"},
     "分かる":{yomi:"わかる",gloss:"entender",ro:"wakaru"},
-    "もう":{yomi:"もう",gloss:"ya; más",ro:"mou"},
+    "もう":{yomi:"もう",gloss:"ya; más",ro:"mō"},
     "我慢する":{yomi:"がまんする",gloss:"aguantarse / soportar",ro:"gaman suru"},
     "ことはない":{yomi:"ことはない",gloss:"no hace falta; no es necesario",ro:"koto wa nai"},
     "のが":{yomi:"のが",gloss:"(posesivo/nominalizador + が)",ro:"no ga"},
-
-    // partículas (con uso)
+    // partículas
     "を":{yomi:"を",gloss:"partícula de objeto directo",ro:"wo",note:"Marca el objeto directo de la acción (A を V)."},
     "は":{yomi:"は",gloss:"partícula de tema / contraste",ro:"wa",note:"Presenta el tema; contrasta con が."},
     "が":{yomi:"が",gloss:"partícula de sujeto / énfasis",ro:"ga",note:"Marca sujeto nuevo o enfatizado."},
@@ -333,12 +333,22 @@
     return out;
   }
 
-  // normalizador (maneja macrones)
+  // normalizador: macrones precompuestos y combinados → secuencias (ō→ou, ū→uu, etc.)
   const norm = (s)=>{
     if(!s) return '';
-    const mac = {'Ā':'aa','ā':'aa','Ī':'ii','ī':'ii','Ū':'uu','ū':'uu','Ē':'ee','ē':'ee','Ō':'ou','ō':'ou'};
-    s = s.replace(/[ĀāĪīŪūĒēŌō]/g, ch => mac[ch] || ch);
-    return s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]/g,'');
+    // precompuestos
+    const macPre = {'Ā':'aa','ā':'aa','Ī':'ii','ī':'ii','Ū':'uu','ū':'uu','Ē':'ee','ē':'ee','Ō':'ou','ō':'ou'};
+    s = s.replace(/[ĀāĪīŪūĒēŌō]/g, ch => macPre[ch] || ch);
+    // combinados (vocal + U+0304)
+    s = s.replace(/a\u0304/gi,'aa')
+         .replace(/i\u0304/gi,'ii')
+         .replace(/u\u0304/gi,'uu')
+         .replace(/e\u0304/gi,'ee')
+         .replace(/o\u0304/gi,'ou');
+    // limpia diacríticos restantes y no-alfanum
+    return s.toLowerCase()
+            .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+            .replace(/[^a-z0-9]/g,'');
   };
 
   /* ======== Render ======== */
@@ -373,7 +383,7 @@
             sp.dataset.dict='1';
             sp.dataset.yomi = tok.dict.yomi || '';
             sp.dataset.gloss= tok.dict.gloss || '';
-            if(tok.dict.ro) sp.dataset.roma = tok.dict.ro;   // romaji preferente
+            if(tok.dict.ro) sp.dataset.roma = tok.dict.ro;
             if(tok.dict.note) sp.dataset.note = tok.dict.note;
           } else sp.dataset.dict='0';
           wrap.appendChild(sp);
@@ -449,14 +459,12 @@
       }
     }
     for(let i=0;i<norms.length;i++){ if(norms[i]===target){ toks[i].classList.add('hl'); return; } }
-
     let pick=-1, bestLen=0;
     for(let i=0;i<norms.length;i++){
       const n=norms[i];
       if(n.includes(target) || target.includes(n)){ if(n.length>bestLen){ pick=i; bestLen=n.length; } }
     }
     if(pick!==-1){ toks[pick].classList.add('hl'); return; }
-
     roBadgeEl=document.createElement('span'); roBadgeEl.className='ro-badge'; roBadgeEl.textContent=romaji; capRO.appendChild(roBadgeEl);
   }
 
@@ -471,7 +479,6 @@
     if(!romaji && reading){ romaji = hiraToRoma(reading); }
     if(romaji){ highlightInRO(romaji); } else { clearROHighlight(); }
   });
-
   document.addEventListener('mouseleave', ()=> clearROHighlight(), true);
 
   // Click JA: popover + sincroniza RO
@@ -506,68 +513,77 @@
     if(romaOut) highlightInRO(romaOut);
   }, true);
 
-  /* Click en ROMAJI: popover + highlight, igual que en JA */
+  /* Click en ROMAJI: popover con significado/uso (igual que en JA) */
   document.addEventListener('click',(e)=>{
     if(!state.showRO) return;
     if(!capRO.contains(e.target)) return;
     const roSpan = e.target.closest('.word-ro'); if(!roSpan) return;
 
-    const toks  = Array.from(capRO.querySelectorAll('.word-ro'));
-    const idx   = toks.indexOf(roSpan);
-    const get=(i)=> (i>=0 && i<toks.length)? toks[i].textContent.trim() : null;
+    const toks = Array.from(capRO.querySelectorAll('.word-ro'));
+    const idx  = toks.indexOf(roSpan);
+    const get  = i => (i>=0 && i<toks.length)? toks[i].textContent.trim() : null;
 
-    const candidates=[];
-    for(let w=4; w>=1; w--){
-      for(let start=idx-(w-1); start<=idx; start++){
-        if(start<0) continue;
+    // Candidatos contiguos hasta 4 tokens
+    const candidates = [];
+    for (let w=4; w>=1; w--) {
+      for (let start=idx-(w-1); start<=idx; start++) {
+        if (start<0) continue;
         const parts=[];
-        for(let k=0;k<w;k++){ const t=get(start+k); if(!t){ parts.length=0; break; } parts.push(t); }
+        for (let k=0;k<w;k++){ const t=get(start+k); if(!t){ parts.length=0; break; } parts.push(t); }
         if(parts.length) candidates.push({start, end:start+w-1, text:parts.join(' ')});
       }
     }
 
-    let match=null, entry=null, key=null;
+    // Match con ro del diccionario
+    let match=null, entry=null, key=null, candText='';
     const keysWithRO = DICT_KEYS.filter(k => JA_DICT[k]?.ro);
-    for(const cand of candidates){
+    for (const cand of candidates) {
       const cn = norm(cand.text);
-      for(const k of keysWithRO){
-        if(norm(JA_DICT[k].ro) === cn){ match=cand; entry=JA_DICT[k]; key=k; break; }
+      for (const k of keysWithRO) {
+        if (norm(JA_DICT[k].ro) === cn) { match=cand; entry=JA_DICT[k]; key=k; candText=cand.text; break; }
       }
-      if(match) break;
+      if (match) break;
     }
     if(!entry) return;
 
+    // Popover
     pvWord.textContent = key;
     pvRead.textContent = 'Lectura: ' + (entry.yomi || '—');
     pvMeaning.textContent = 'Significado: ' + (entry.gloss || '—') + (entry.note ? ' · Uso: ' + entry.note : '');
-
     const rect=player.getBoundingClientRect();
     pop.style.display='block';
     pop.style.left=(Math.min(rect.width-10, Math.max(10, e.clientX - rect.left + 8)))+'px';
     pop.style.top =(Math.min(rect.height-10, Math.max(10, e.clientY - rect.top + 8)) - 10)+'px';
 
+    // Highlight n-grama en RO
     clearROHighlight();
-    for(let i=match.start;i<=match.end;i++) toks[i].classList.add('hl');
+    for (let i = match.start; i <= match.end; i++) toks[i].classList.add('hl');
 
-    // si JA visible, resalta la porción equivalente
-    if(state.showJA && key){
+    // Si JA visible, también resaltá la parte correspondiente por superposición de índices
+    if (state.showJA) {
       capJA.querySelectorAll('.hl').forEach(el=>el.classList.remove('hl'));
-      const lineWrap = capJA.querySelector('.line-ja');
-      const lineText = lineWrap ? (lineWrap.dataset.text || '') : '';
-      if(lineText){
-        const jaIndex = lineText.indexOf(key);
-        if(jaIndex>=0){
-          const spans = Array.from(capJA.querySelectorAll('.word-ja'));
-          spans.forEach(sp=>{
-            const s = Number(sp.dataset.start)||0, e2 = Number(sp.dataset.end)||0;
-            if (s < jaIndex + key.length && e2 > jaIndex) sp.classList.add('hl');
-          });
-        }
+      const spans = Array.from(capJA.querySelectorAll('.word-ja'));
+      // Intento 1: buscar la llave exacta en el texto de línea
+      const wrap = capJA.querySelector('.line-ja');
+      const lineText = wrap ? (wrap.dataset.text || '') : '';
+      let jStart = lineText.indexOf(key);
+      if (jStart >= 0) {
+        spans.forEach(sp=>{
+          const s = Number(sp.dataset.start)||0, e2 = Number(sp.dataset.end)||0;
+          if (s < jStart + key.length && e2 > jStart) sp.classList.add('hl');
+        });
+      } else {
+        // Intento 2: si la key no aparece literal (p. ej., con furigana/kanji alterno), resalta por lectura
+        const byRo = norm(entry.ro);
+        spans.forEach(sp=>{
+          const r = sp.dataset.roma || (sp.dataset.yomi ? hiraToRoma(sp.dataset.yomi) : '');
+          if (r && norm(r) && byRo.includes(norm(r))) sp.classList.add('hl');
+        });
       }
     }
   });
 
-  // Herramientas y atajos (sin tocar el video)
+  // Herramientas y atajos
   $('#btnTest').addEventListener('click', ()=>{ setSrc('https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4'); log('Cargando video de prueba MDN'); });
   $('#btnURL').addEventListener('click', ()=>{ const u=prompt('Pegá una URL directa a .mp4 (https://...)'); if(!u) return; setSrc(u.trim()); log('Cambié src a '+u); });
   document.addEventListener('keydown',(e)=>{ if(e.key==='j' || e.key==='J'){ togJA.click(); } if(e.key==='a' || e.key==='A'){ togRO.click(); } if(e.key==='e' || e.key==='E'){ togES.click(); } if(e.key==='g' || e.key==='G'){ togFG.click(); } });
@@ -575,6 +591,7 @@
 </script>
 </body>
 </html>
+
 
 
 
