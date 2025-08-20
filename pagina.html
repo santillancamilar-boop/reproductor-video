@@ -161,10 +161,10 @@
       const $ = (s)=>document.querySelector(s);
       const player=$('#player'), video=$('#video'), srcEl=$('#src');
       const bigPlay=$('#bigPlay'), playBtn=$('#play'), iconPlay=$('#icon-play');
-      const back10=$('#back10'), fwd10=$('#fwd10'), seek=$('#seek'), progressBar=$('#progressBar'), bufferedBar=$('#bufferedBar');
-      const cur=$('#currentTime'), dur=$('#duration'), muteBtn=$('#mute'), vol=$('#volume'), speed=$('#speed'), fs=$('#fs'), badgeDur=$('#badgeDur');
-      const diag=$('#diag'), statusSrc=$('#statusSrc');
-      const pillJA=$('#pillJA'), pillRO=$('#pillRO'), pillES=$('#pillES');
+      const back10=$('#back10'), fwd10=$('#fwd10'), seek=$('#seek'), progressBar=$('#progressBar'), bufferedBar=$('#bufferedBar']);
+      const cur=$('#currentTime'), dur=$('#duration'), muteBtn=$('#mute'), vol=$('#volume'), speed=$('#speed'), fs=$('#fs'), badgeDur=$('#badgeDur']);
+      const diag=$('#diag'), statusSrc=$('#statusSrc']);
+      const pillJA=$('#pillJA'), pillRO=$('#pillRO'), pillES=$('#pillES']);
 
       function log(msg){ diag.innerHTML = `[${new Date().toLocaleTimeString()}] ${msg}<br>` + diag.innerHTML; }
       function setSrc(url){ srcEl.src=url; statusSrc.textContent='src: '+url; video.load(); }
@@ -255,7 +255,7 @@
         "我慢する":{yomi:"がまんする",gloss:"aguantarse / soportar",pos:"verbo compuesto"},
         "ことはない":{yomi:"こと は ない",gloss:"no hace falta; no es necesario",pos:"expresión", ro:"koto wa nai"},
 
-        /* partículas base */
+        /* partículas base con romaji preferente */
         "は":{yomi:"は",gloss:"marcador de tema / contraste",pos:"partícula (tema)",note:"Se pronuncia 'wa' como partícula.", ro:"wa"},
         "が":{yomi:"が",gloss:"marcador de sujeto / énfasis",pos:"partícula (sujeto)"},
         "を":{yomi:"を",gloss:"marcador de objeto directo",pos:"partícula (objeto)"},
@@ -272,14 +272,14 @@
       };
       const DICT_KEYS=Object.keys(JA_DICT).sort((a,b)=>b.length-a.length);
 
-      // Segmentación JA
+      /* Segmentación JA (preferir entradas de diccionario) */
       const segJA = (typeof Intl!=='undefined' && Intl.Segmenter)? new Intl.Segmenter('ja',{granularity:'word'}) : null;
       function sliceWithDict(line){
         const out=[]; let i=0;
         while(i<line.length){
           let m=null;
           for(const k of DICT_KEYS){ if(line.startsWith(k,i)){ m=k; break; } }
-          if(m){ const e=JA_DICT[m]; out.push({text:m, dict=e, start:i, end:i+m.length}); i+=m.length; }
+          if(m){ const e=JA_DICT[m]; out.push({text:m, dict:e, start:i, end:i+m.length}); i+=m.length; }
           else{ out.push({text:line[i], start:i, end:i+1}); i++; }
         }
         return out;
@@ -332,7 +332,7 @@
         return out;
       }
 
-      /* === FIX: normalizador que entiende macrones (mō→mou, jū→juu, etc.) === */
+      /* === Normalizador que entiende macrones (mō→mou, jū→juu, etc.) === */
       const norm = (s)=>{
         if(!s) return '';
         const macronMap = {'Ā':'aa','ā':'aa','Ī':'ii','ī':'ii','Ū':'uu','ū':'uu','Ē':'ee','ē':'ee','Ō':'ou','ō':'ou'};
@@ -380,7 +380,7 @@
                 sp.dataset.gloss=tok.dict.gloss;
                 if(tok.dict.pos) sp.dataset.pos = tok.dict.pos;
                 if(tok.dict.note) sp.dataset.note = tok.dict.note;
-                if(tok.dict.ro)   sp.dataset.roma = tok.dict.ro;     /* FIX: romaji preferente para partículas */
+                if(tok.dict.ro)   sp.dataset.roma = tok.dict.ro;     /* romaji preferente */
               } else { sp.dataset.dict='0'; }
               lineWrap.appendChild(sp);
             });
@@ -457,8 +457,8 @@
         const span=e.target.closest('.word-ja'); if(!span) { clearROHighlight(); return; }
         let reading = span.dataset.yomi || '';
         let romaji  = span.dataset.roma || '';
-        const txt=span.textContent||'';
-        if(!reading && /[\u3040-\u309f]/.test(txt)){ reading=txt; }
+        const txt = span.textContent || '';
+        if(!reading && /[\u3040-\u309f]/.test(txt)){ reading = txt; }
         if(!romaji && reading){ romaji = hiraToRoma(reading); }
         if(romaji){ highlightInRO(romaji); } else { clearROHighlight(); }
       });
@@ -471,7 +471,7 @@
 
         const span=e.target.closest('.word-ja'); if(!span) return;
         const lineWrap=span.closest('.line-ja');
-        const lineText=lineWrap?lineWrap.dataset.text||'':'';        
+        const lineText=lineWrap?lineWrap.dataset.text||'':'';
         const start=Number(span.dataset.start)||0, end=Number(span.dataset.end)||start+(span.textContent||'').length;
         const pos=Math.floor((start+end)/2);
 
@@ -515,5 +515,4 @@
   </script>
 </body>
 </html>
-
 
