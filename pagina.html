@@ -684,10 +684,43 @@ document.addEventListener('mouseleave', ()=>{
   $('#btnTest').addEventListener('click', ()=>{ setSrc('https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4'); log('Cargando video de prueba MDN'); });
   $('#btnURL').addEventListener('click', ()=>{ const u=prompt('Pegá una URL directa a .mp4 (https://...)'); if(!u) return; setSrc(u.trim()); log('Cambié src a '+u); });
   document.addEventListener('keydown',(e)=>{ if(e.key==='j' || e.key==='J'){ togJA.click(); } if(e.key==='a' || e.key==='A'){ togRO.click(); } if(e.key==='e' || e.key==='E'){ togES.click(); } if(e.key==='g' || e.key==='G'){ togFG.click(); } });
+
+  // Hover: cuando están activos JA y RO, mostrar romaji al pasar el mouse
+  const showRomajiOnHover = () => {
+    if (!togJA.checked || !togRO.checked) return; // Solo si están ambos activos
+
+    const jaBlocks = document.querySelectorAll('.ja-block');
+    jaBlocks.forEach(block => {
+      const ro = block.querySelector('.ro');
+      if (!ro) return;
+
+      // Ocultar romaji por defecto
+      ro.style.opacity = '0';
+      ro.style.transition = 'opacity 0.2s';
+
+      block.addEventListener('mouseenter', () => {
+        ro.style.opacity = '1';
+      });
+      block.addEventListener('mouseleave', () => {
+        ro.style.opacity = '0';
+      });
+    });
+  };
+
+  // Llamar una vez cargado todo
+  showRomajiOnHover();
+
+  // También volver a llamar cuando se activen los toggles
+  [togJA, togRO].forEach(toggle => {
+    toggle.addEventListener('change', showRomajiOnHover);
+  });
+
 })();
 </script>
 </body>
 </html>
+
+
 
 
 
