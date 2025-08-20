@@ -62,10 +62,8 @@
     .popover .word{ font-weight:800 } .popover .hint{ color:var(--muted); font-size:12px }
     .popover .meaning{ margin-top:6px }
 
-    /* Badges pequeños (romaji sugerido) */
     .ro-badge{ margin-left:8px; font-size:12px; padding:2px 6px; border-radius:999px; border:1px solid var(--edge); background:#fff }
 
-    /* Diagnóstico oculto */
     .diag{ display:none; }
     .pill{ padding:4px 8px; border-radius:999px; border:1px solid var(--edge); background:#f7f7ff; white-space:nowrap }
     .tools{ display:flex; gap:8px; padding:0 16px 16px; flex-wrap:wrap }
@@ -233,14 +231,13 @@
 
       /* ======== Diccionario + partículas ======== */
       const JA_DICT={
-        // palabras del clip
         "孫悟飯":{yomi:"そんごはん",gloss:"Son Gohan (nombre propio)",pos:"nombre propio"},
         "正しい":{yomi:"ただしい",gloss:"correcto; justo",pos:"adjetivo i"},
         "こと":{yomi:"こと",gloss:"cosa; hecho (nominalizador)",pos:"sust./nominalizador"},
         "ために":{yomi:"ために",gloss:"para; por el bien de",pos:"expresión"},
         "戦う":{yomi:"たたかう",gloss:"pelear; luchar",pos:"verbo"},
         "罪":{yomi:"つみ",gloss:"pecado; culpa",pos:"sustantivo"},
-        "ではない":{yomi:"ではない",gloss:"no es; no ser (neg. de だ)",pos:"cópula (neg.)"},
+        "ではない":{yomi:"ではない",gloss:"no es; no ser (neg. de だ)",pos:"cópula (neg.)", ro:"de wa nai"},
         "話し合い":{yomi:"はなしあい",gloss:"diálogo; discusión",pos:"sustantivo"},
         "など":{yomi:"など",gloss:"etc.; cosas como ~",pos:"partícula (listado)",note:"Se usa tras ejemplos para indicar 'y similares'."},
         "通用しない":{yomi:"つうようしない",gloss:"no funciona; no surte efecto",pos:"verbo (neg.)"},
@@ -256,14 +253,15 @@
         "分かる":{yomi:"わかる",gloss:"entender",pos:"verbo"},
         "もう":{yomi:"もう",gloss:"ya; más",pos:"adverbio (tiempo)"},
         "我慢する":{yomi:"がまんする",gloss:"aguantarse / soportar",pos:"verbo compuesto"},
-        "ことはない":{yomi:"ことはない",gloss:"no hace falta; no es necesario",pos:"expresión"},
-        // partículas base (tipo + uso)
-        "は":{yomi:"は",gloss:"marcador de tema / contraste",pos:"partícula (tema)",note:"Presenta el tema. Contrasta con が (enfoque del sujeto)."},
-        "が":{yomi:"が",gloss:"marcador de sujeto / énfasis",pos:"partícula (sujeto)",note:"Enfatiza el sujeto o introduce nueva info."},
+        "ことはない":{yomi:"こと は ない",gloss:"no hace falta; no es necesario",pos:"expresión", ro:"koto wa nai"},
+
+        /* partículas base */
+        "は":{yomi:"は",gloss:"marcador de tema / contraste",pos:"partícula (tema)",note:"Se pronuncia 'wa' como partícula.", ro:"wa"},
+        "が":{yomi:"が",gloss:"marcador de sujeto / énfasis",pos:"partícula (sujeto)"},
         "を":{yomi:"を",gloss:"marcador de objeto directo",pos:"partícula (objeto)"},
         "に":{yomi:"に",gloss:"tiempo, destino, receptor; existencia (〜にいる/ある)",pos:"partícula (tiempo/lugar/destino)"},
         "で":{yomi:"で",gloss:"lugar donde ocurre la acción; medio",pos:"partícula (lugar/medio)"},
-        "へ":{yomi:"へ",gloss:"dirección (hacia)",pos:"partícula (dirección)"},
+        "へ":{yomi:"へ",gloss:"dirección (hacia)",pos:"partícula (dirección)", ro:"e"},
         "と":{yomi:"と",gloss:"'y' / con; cita",pos:"partícula (conj./cita)"},
         "も":{yomi:"も",gloss:"también; incluso",pos:"partícula (aditiva)",note:"Añade elementos: Xも = 'también X'. Con いる/ある: 'también hay'."},
         "の":{yomi:"の",gloss:"posesivo; nominalizador",pos:"partícula (posesiva/nominaliz.)"},
@@ -281,7 +279,7 @@
         while(i<line.length){
           let m=null;
           for(const k of DICT_KEYS){ if(line.startsWith(k,i)){ m=k; break; } }
-          if(m){ const e=JA_DICT[m]; out.push({text:m, dict:e, start:i, end:i+m.length}); i+=m.length; }
+          if(m){ const e=JA_DICT[m]; out.push({text:m, dict=e, start:i, end:i+m.length}); i+=m.length; }
           else{ out.push({text:line[i], start:i, end:i+1}); i++; }
         }
         return out;
@@ -333,7 +331,16 @@
         }
         return out;
       }
-      const norm = s => (s||'').toLowerCase().replace(/[^a-z0-9]/g,'');
+
+      /* === FIX: normalizador que entiende macrones (mō→mou, jū→juu, etc.) === */
+      const norm = (s)=>{
+        if(!s) return '';
+        const macronMap = {'Ā':'aa','ā':'aa','Ī':'ii','ī':'ii','Ū':'uu','ū':'uu','Ē':'ee','ē':'ee','Ō':'ou','ō':'ou'};
+        s = s.replace(/[ĀāĪīŪūĒēŌō]/g, ch => macronMap[ch] || ch);
+        return s.toLowerCase()
+                .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+                .replace(/[^a-z0-9]/g,'');
+      };
 
       /* ======== Render ======== */
       function renderLine(track, el, mode){
@@ -373,6 +380,7 @@
                 sp.dataset.gloss=tok.dict.gloss;
                 if(tok.dict.pos) sp.dataset.pos = tok.dict.pos;
                 if(tok.dict.note) sp.dataset.note = tok.dict.note;
+                if(tok.dict.ro)   sp.dataset.roma = tok.dict.ro;     /* FIX: romaji preferente para partículas */
               } else { sp.dataset.dict='0'; }
               lineWrap.appendChild(sp);
             });
@@ -448,9 +456,11 @@
         if(!state.showJA || !capJA.contains(e.target)) return;
         const span=e.target.closest('.word-ja'); if(!span) { clearROHighlight(); return; }
         let reading = span.dataset.yomi || '';
+        let romaji  = span.dataset.roma || '';
         const txt=span.textContent||'';
         if(!reading && /[\u3040-\u309f]/.test(txt)){ reading=txt; }
-        if(reading){ highlightInRO(hiraToRoma(reading)); } else { clearROHighlight(); }
+        if(!romaji && reading){ romaji = hiraToRoma(reading); }
+        if(romaji){ highlightInRO(romaji); } else { clearROHighlight(); }
       });
 
       document.addEventListener('mouseleave', ()=> clearROHighlight(), true);
@@ -461,18 +471,18 @@
 
         const span=e.target.closest('.word-ja'); if(!span) return;
         const lineWrap=span.closest('.line-ja');
-        const lineText=lineWrap?lineWrap.dataset.text||'':'';
+        const lineText=lineWrap?lineWrap.dataset.text||'':'';        
         const start=Number(span.dataset.start)||0, end=Number(span.dataset.end)||start+(span.textContent||'').length;
         const pos=Math.floor((start+end)/2);
 
         let surface = span.dataset.word || span.textContent;
         let entry = (span.dataset.dict==='1') ? {
-          yomi:span.dataset.yomi,gloss:span.dataset.gloss,pos:span.dataset.pos,note:span.dataset.note
+          yomi:span.dataset.yomi,gloss:span.dataset.gloss,pos:span.dataset.pos,note:span.dataset.note, ro:span.dataset.roma
         } : null;
 
         if(!entry){
           const best=longestDictAt(lineText, pos);
-          if(best){ surface=best.text; entry={yomi:best.entry.yomi,gloss:best.entry.gloss,pos:best.entry.pos,note:best.entry.note}; }
+          if(best){ surface=best.text; entry={yomi:best.entry.yomi,gloss:best.entry.gloss,pos:best.entry.pos,note:best.entry.note, ro:best.entry.ro}; }
         }
 
         pvWord.textContent = surface;
@@ -486,7 +496,8 @@
         pop.style.left=(Math.min(rect.width-10, Math.max(10, e.clientX - rect.left + 8)))+'px';
         pop.style.top =(Math.min(rect.height-10, Math.max(10, e.clientY - rect.top + 8)) - 10)+'px';
 
-        if(entry && entry.yomi) highlightInRO(hiraToRoma(entry.yomi));
+        const romaOut = entry?.ro || (entry?.yomi ? hiraToRoma(entry.yomi) : '');
+        if(romaOut) highlightInRO(romaOut);
       }, true);
 
       // Herramientas
@@ -504,6 +515,5 @@
   </script>
 </body>
 </html>
-
 
 
