@@ -161,405 +161,109 @@
 
 
 <script>
-(function(){
-  // ===== util =====
-  function $(s){ return document.querySelector(s); }
-  function log(msg){
-    var diag = $('#diag'); if(!diag) return;
-    diag.innerHTML = '['+(new Date().toLocaleTimeString())+'] '+msg+'<br>'+diag.innerHTML;
-  }
-  function norm(s){
-    if(!s) return '';
-    var mac = {'Ā':'aa','ā':'aa','Ī':'ii','ī':'ii','Ū':'uu','ū':'uu','Ē':'ee','ē':'ee','Ō':'ou','ō':'ou'};
-    s = s.replace(/[ĀāĪīŪūĒēŌō]/g, function(ch){ return mac[ch]||ch; });
-    try{ s = s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,''); }
-    catch(_){ s = s.toLowerCase(); }
-    return s.replace(/[^a-z0-9]/g,'');
-  }
-  // ===== refs UI =====
-  var player=$('#player'), video=$('#video'), srcEl=$('#src');
-  var bigPlay=$('#bigPlay'), playBtn=$('#play'), iconPlay=$('#icon-play');
-  var back10=$('#back10'), fwd10=$('#fwd10'), seek=$('#seek'), progressBar=$('#progressBar'), bufferedBar=$('#bufferedBar');
-  var cur=$('#currentTime'), dur=$('#duration'), muteBtn=$('#mute'), vol=$('#volume'), speed=$('#speed'), fs=$('#fs'), badgeDur=$('#badgeDur');
-  var capJA=$('#cap-ja'), capRO=$('#cap-romaji'), capES=$('#cap-es');
-  var trkJA=$('#trk-ja'), trkRO=$('#trk-ro'), trkES=$('#trk-es');
-  var togJA=$('#tog-ja'), togRO=$('#tog-romaji'), togES=$('#tog-es'), togFG=$('#tog-fg');
-  var pop=$('#popover'), pvWord=$('#pv-word'), pvRead=$('#pv-read'), pvMeaning=$('#pv-meaning');
+  (function(){
+    const $ = (s)=>document.querySelector(s);
+    const player=$('#player'), video=$('#video'), srcEl=$('#src');
+    const bigPlay=$('#bigPlay'), playBtn=$('#play'), iconPlay=$('#icon-play');
+    const back10=$('#back10'), fwd10=$('#fwd10'), seek=$('#seek'),
+          progressBar=$('#progressBar'), bufferedBar=$('#bufferedBar');
+    const cur=$('#currentTime'), dur=$('#duration'),
+          muteBtn=$('#mute'), vol=$('#volume'),
+          speed=$('#speed'), fs=$('#fs'), badgeDur=$('#badgeDur');
+    const diag=$('#diag'), statusSrc=$('#statusSrc');
+    const pillJA=$('#pillJA'), pillRO=$('#pillRO'), pillES=$('#pillES');
 
-  // sanity
-  if(!player||!video||!capJA||!capRO){ log('Falta algún nodo clave (player/video/capJA/capRO)'); }
-
-  // ===== video (sin tocar lógica original) =====
-  function setSrc(url){ if(srcEl){ srcEl.src=url; } var statusSrc=$('#statusSrc'); if(statusSrc) statusSrc.textContent='src: '+url; video.load(); }
-  function formatTime(s){ if(!isFinite(s)) return '0:00'; var h=Math.floor(s/3600), m=Math.floor((s%3600)/60), sec=(''+Math.floor(s%60)).padStart(2,'0'); return (h>0? h+':'+(''+m).padStart(2,'0'):m)+':'+sec; }
-  video.addEventListener('loadedmetadata',function(){ if(dur) dur.textContent=formatTime(video.duration); if(badgeDur) badgeDur.textContent=formatTime(video.duration); updateBuffered(); log('loadedmetadata'); });
-  function togglePlay(){ (video.paused||video.ended)?video.play():video.pause(); }
-  if(playBtn) playBtn.addEventListener('click', togglePlay);
-  if(bigPlay) bigPlay.addEventListener('click', togglePlay);
-  video.addEventListener('click', togglePlay);
-  video.addEventListener('play', function(){ if(iconPlay) iconPlay.textContent='⏸'; if(bigPlay) bigPlay.style.display='none'; });
-  video.addEventListener('pause', function(){ if(iconPlay) iconPlay.textContent='▶';  if(bigPlay) bigPlay.style.display='grid'; });
-  if(back10) back10.addEventListener('click', function(){ video.currentTime=Math.max(0,(video.currentTime||0)-10); });
-  if(fwd10)  fwd10 .addEventListener('click', function(){ video.currentTime=Math.min(video.duration||0,(video.currentTime||0)+10); });
-  function updateTime(){ if(cur) cur.textContent=formatTime(video.currentTime); var pct=(video.currentTime/(video.duration||1))*100; if(progressBar) progressBar.style.width=pct+'%'; if(seek) seek.value = Math.round((video.currentTime/(video.duration||1))*1000)||0; }
-  function updateBuffered(){ try{ if(video.buffered && video.buffered.length){ var end=video.buffered.end(video.buffered.length-1); if(bufferedBar) bufferedBar.style.width=((end/(video.duration||1))*100)+'%'; } }catch(e){} }
-  video.addEventListener('timeupdate', updateTime);
-  video.addEventListener('progress', updateBuffered);
-  video.addEventListener('loadeddata', updateBuffered);
-  if(seek) seek.addEventListener('input', function(){ video.currentTime=(seek.value/1000)*(video.duration||0); updateTime(); });
-  if(vol)  vol .addEventListener('input', function(){ video.volume=Number(vol.value); if(video.volume>0) video.muted=false; updateMuteIcon(); });
-  if(muteBtn) muteBtn.addEventListener('click', function(){ video.muted=!video.muted; updateMuteIcon(); });
-  video.addEventListener('volumechange', updateMuteIcon); updateMuteIcon();
-  function updateMuteIcon(){ var level=video.muted||video.volume===0?0:video.volume; if(muteBtn) muteBtn.textContent= level===0?'🔇':(level<.5?'🔈':'🔊'); }
-  if(speed) speed.addEventListener('change', function(){ video.playbackRate=Number(speed.value); });
-  if(fs) fs.addEventListener('click', function(){ if(document.fullscreenElement) document.exitFullscreen(); else player.requestFullscreen().catch(function(){}); });
-
-  // ===== estado/toggles =====
-  var state={ showJA:true, showRO:false, showES:false, showFG:false };
-  function setToggle(btn,on){ if(btn) btn.setAttribute('aria-pressed', on); }
-  function syncToggles(){ setToggle(togJA,state.showJA); setToggle(togRO,state.showRO); setToggle(togES,state.showES); setToggle(togFG,state.showFG); }
-  syncToggles();
-  if(togJA) togJA.addEventListener('click', function(){ state.showJA=!state.showJA; syncToggles(); renderCue(); });
-  if(togRO) togRO.addEventListener('click', function(){ state.showRO=!state.showRO; syncToggles(); renderCue(); });
-  if(togES) togES.addEventListener('click', function(){ state.showES=!state.showES; syncToggles(); renderCue(); });
-  if(togFG) togFG.addEventListener('click', function(){ state.showFG=!state.showFG; syncToggles(); renderCue(); });
-
-  // ===== diccionario (partículas + extras + ro preferente) =====
-  var JA_DICT={
-    "孫悟飯":{yomi:"そんごはん",gloss:"Son Gohan (nombre propio)", ro:"son gohan"},
-    "正しい":{yomi:"ただしい",gloss:"correcto; justo", ro:"tadashii"},
-    "こと":{yomi:"こと",gloss:"cosa; hecho", ro:"koto"},
-    "ために":{yomi:"ために",gloss:"para; por el bien de", ro:"tame ni"},
-    "戦う":{yomi:"たたかう",gloss:"pelear; luchar", ro:"tatakau"},
-    "罪":{yomi:"つみ",gloss:"pecado; culpa", ro:"tsumi"},
-    "ではない":{yomi:"ではない",gloss:"no es; no ser", ro:"de wa nai"},
-    "話し合い":{yomi:"はなしあい",gloss:"diálogo; discusión", ro:"hanashiai"},
-    "など":{yomi:"など",gloss:"etc.; cosas como ~", ro:"nado"},
-    "通用しない":{yomi:"つうようしない",gloss:"no funciona; no surte efecto", ro:"tsuuyou shinai"},
-    "相手":{yomi:"あいて",gloss:"oponente; interlocutor", ro:"aite"},
-    "もいるのだ":{yomi:"もいるのだ",gloss:"también hay (explicativo)", ro:"mo iru no da"},
-    "いるのだ":{yomi:"いるのだ",gloss:"(alguien) está (explicativo)", ro:"iru no da"},
-    "精神":{yomi:"せいしん",gloss:"espíritu; mente", ro:"seishin"},
-    "光":{yomi:"ひかり",gloss:"luz", ro:"hikari"},
-    "自由に":{yomi:"じゆうに",gloss:"libremente", ro:"jiyuu ni"},
-    "解放してやれ":{yomi:"かいほうしてやれ",gloss:"libéralo / déjalo libre", ro:"kaihou shite yare"},
-    "気持ち":{yomi:"きもち",gloss:"sentimiento", ro:"kimochi"},
-    "分かる":{yomi:"わかる",gloss:"entender", ro:"wakaru"},
-    "もう":{yomi:"もう",gloss:"ya / más", ro:"mou"},
-    "我慢する":{yomi:"がまんする",gloss:"aguantarse / soportar", ro:"gaman suru"},
-    "ことはない":{yomi:"ことはない",gloss:"no hace falta / no es necesario", ro:"koto wa nai"},
-    "のが":{yomi:"のが",gloss:"‘el hecho de…’ (nominalizador + sujeto)", ro:"no ga", note:"Nominaliza y marca como sujeto."},
-
-    // partículas (incluye variantes de ro)
-    "を":{yomi:"を",gloss:"marcador de objeto directo",pos:"partícula (objeto)", ro:"o",  rov:["wo"], note:"Marca el objeto directo."},
-    "は":{yomi:"は",gloss:"marcador de tema/contraste",pos:"partícula (tema)", ro:"wa", rov:["ha"], note:"Presenta tema; contrasta con が."},
-    "が":{yomi:"が",gloss:"marcador de sujeto/énfasis",pos:"partícula (sujeto)", ro:"ga", note:"Enfatiza sujeto o introduce info nueva."},
-    "も":{yomi:"も",gloss:"también; incluso",pos:"partícula (aditiva)", ro:"mo", note:"Xも = ‘también X’."},
-    "の":{yomi:"の",gloss:"posesivo; nominalizador",pos:"partícula", ro:"no", note:"Une sustantivos (‘de’) o nominaliza."},
-    "に":{yomi:"に",gloss:"tiempo/lugar destino/receptor",pos:"partícula", ro:"ni", note:"Tiempo, destino, receptor; existencia."},
-    "で":{yomi:"で",gloss:"lugar de la acción; medio",pos:"partícula", ro:"de", note:"Dónde ocurre la acción; también medio."},
-    "へ":{yomi:"へ",gloss:"dirección (hacia)",pos:"partícula (dirección)", ro:"e", rov:["he"], note:"Dirección aproximada; más literario que に."},
-    "と":{yomi:"と",gloss:"‘y’ / con; cita",pos:"partícula (conj./cita)", ro:"to", note:"Coordina; marca comillas/cita."},
-    "から":{yomi:"から",gloss:"desde; porque",pos:"partícula (origen/causa)", ro:"kara"},
-    "まで":{yomi:"まで",gloss:"hasta",pos:"partícula (límite)", ro:"made"},
-    "より":{yomi:"より",gloss:"que (comparativo)",pos:"partícula (comparación)", ro:"yori"},
-
-    // extra
-    "まま":{yomi:"まま",gloss:"tal cual; en ese estado",pos:"sust. gramatical", ro:"mama", note:"Algo se mantiene ‘tal cual’."},
-    "のまま":{yomi:"の まま",gloss:"tal como (X) está/estaba",pos:"construcción", ro:"no mama", note:"X のまま = ‘tal como X’, sin cambiar."}
-  };
-  var DICT_KEYS=Object.keys(JA_DICT).sort(function(a,b){return b.length-a.length;});
-
-  // índice RO
-  var RO_INDEX = {};
-  function addRo(surf, entry, r){ if(!r) return; RO_INDEX[norm(r)] = { surface: surf, yomi:entry.yomi, gloss:entry.gloss, note:entry.note||'', ro:r }; }
-  Object.keys(JA_DICT).forEach(function(surf){
-    var e = JA_DICT[surf]; addRo(surf,e,e.ro);
-    if(e.rov){ e.rov.forEach(function(r){ addRo(surf,e,r); }); }
-  });
-
-  // ===== segmentación JA =====
-  var segJA = (typeof Intl!=='undefined' && Intl.Segmenter)? new Intl.Segmenter('ja',{granularity:'word'}) : null;
-  function sliceWithDict(line){
-    var out=[], i=0;
-    while(i<line.length){
-      var m=null, k;
-      for(var idx=0; idx<DICT_KEYS.length; idx++){ k=DICT_KEYS[idx]; if(line.indexOf(k,i)===i){ m=k; break; } }
-      if(m){ var e=JA_DICT[m]; out.push({text:m, dict:e, start:i, end:i+m.length}); i+=m.length; }
-      else{ out.push({text:line[i], start:i, end:i+1}); i++; }
+    function log(msg){
+      diag.innerHTML = `[${new Date().toLocaleTimeString()}] ${msg}<br>` + diag.innerHTML;
     }
-    return out;
-  }
-  function segmentJapanese(line){
-    var raw=sliceWithDict(line);
-    if(!segJA){ return raw.map(function(p){ return {text:p.text,start:p.start,end:p.end,dict:p.dict||null}; }); }
-    var out=[], buffer='', bStart=null;
-    function flush(){
-      if(!buffer) return;
-      var pos=0;
-      var it = segJA.segment(buffer);
-      for(var seg of it){
-        var s=seg.segment;
-        var st=bStart + buffer.indexOf(s,pos);
-        var en=st+s.length;
-        pos = buffer.indexOf(s,pos)+s.length;
-        out.push({text:s,start:st,end:en,dict:null});
-      }
-      buffer=''; bStart=null;
+    function setSrc(url){
+      srcEl.src=url;
+      statusSrc.textContent='src: '+url;
+      video.load();
     }
-    raw.forEach(function(p){
-      if(p.dict){ flush(); out.push({text:p.text,start:p.start,end:p.end,dict:p.dict}); }
-      else{ if(buffer===''){ buffer=p.text; bStart=p.start; } else buffer+=p.text; }
+
+    function formatTime(s){
+      if(!isFinite(s)) return '0:00';
+      const h=Math.floor(s/3600),
+            m=Math.floor((s%3600)/60),
+            sec=String(Math.floor(s%60)).padStart(2,'0');
+      return (h>0? h+':'+String(m).padStart(2,'0'):m)+':'+sec;
+    }
+    video.addEventListener('loadedmetadata',()=>{
+      dur.textContent=formatTime(video.duration);
+      badgeDur.textContent=formatTime(video.duration);
+      updateBuffered();
+      log('loadedmetadata OK');
     });
-    flush(); return out;
-  }
-
-  // ===== romaji helpers =====
-  var ROMA_MAP = {
-    'きゃ':'kya','きゅ':'kyu','きょ':'kyo','しゃ':'sha','しゅ':'shu','しょ':'sho','ちゃ':'cha','ちゅ':'chu','ちょ':'cho',
-    'にゃ':'nya','にゅ':'nyu','にょ':'nyo','ひゃ':'hya','ひゅ':'hyu','ひょ':'hyo','みゃ':'mya','みゅ':'myu','みょ':'myo',
-    'りゃ':'rya','りゅ':'ryu','りょ':'ryo','ぎゃ':'gya','ぎゅ':'gyu','ぎょ':'gyo','じゃ':'ja','じゅ':'ju','じょ':'jo',
-    'びゃ':'bya','びゅ':'byu','びょ':'byo','ぴゃ':'pya','ぴゅ':'pyu','ぴょ':'pyo',
-    'あ':'a','い':'i','う':'u','え':'e','お':'o','か':'ka','き':'ki','く':'ku','け':'ke','こ':'ko',
-    'さ':'sa','し':'shi','す':'su','せ':'se','そ':'so','た':'ta','ち':'chi','つ':'tsu','て':'te','と':'to',
-    'な':'na','に':'ni','ぬ':'nu','ね':'ne','の':'no','は':'ha','ひ':'hi','ふ':'fu','へ':'he','ほ':'ho',
-    'ま':'ma','み':'mi','む':'mu','め':'me','も':'mo','や':'ya','ゆ':'yu','よ':'yo','ら':'ra','り':'ri','る':'ru','れ':'re','ろ':'ro',
-    'わ':'wa','を':'o','ん':'n','が':'ga','ぎ':'gi','ぐ':'gu','げ':'ge','ご':'go','ざ':'za','じ':'ji','ず':'zu','ぜ':'ze','ぞ':'zo',
-    'だ':'da','ぢ':'ji','づ':'zu','で':'de','ど':'do','ば':'ba','び':'bi','ぶ':'bu','べ':'be','ぼ':'bo','ぱ':'pa','ぴ':'pi','ぷ':'pu','ぺ':'pe','ぽ':'po',
-    'ぁ':'a','ぃ':'i','ぅ':'u','ぇ':'e','ぉ':'o','ゃ':'ya','ゅ':'yu','ょ':'yo','っ':'','ー':''
-  };
-  function hiraToRoma(str){
-    var out=''; for(var i=0;i<str.length;i++){
-      var ch=str[i], next=str[i+1]||'';
-      if(ch==='っ' && next){ var roma = ROMA_MAP[next] || ''; if(roma) out += roma[0]; continue; }
-      var dig=str.slice(i,i+2);
-      if(ROMA_MAP[dig]){ out+=ROMA_MAP[dig]; i++; continue; }
-      out += ROMA_MAP[ch] || ch;
-    }
-    return out;
-  }
-
-  // ===== render =====
-  function renderLine(track, el, mode){
-    var show=(state.showJA&&mode==='ja')||(state.showRO&&mode==='ro')||(state.showES&&mode==='es');
-    if(!show){ el.hidden=true; el.innerHTML=''; return; }
-
-    var cue=null;
-    if(track && track.activeCues && track.activeCues.length) cue=track.activeCues[0];
-    else if(track && track.cues && track.cues.length){
-      var t=video.currentTime;
-      for(var i=0;i<track.cues.length;i++){ var c=track.cues[i]; if(t>=c.startTime && t<=c.endTime){ cue=c; break; } }
-    }
-    if(!cue){ el.hidden=true; el.innerHTML=''; return; }
-
-    el.hidden=false; el.innerHTML='';
-    var lines = cue.text.split(/\r?\n/);
-    for(var li=0; li<lines.length; li++){
-      var lineText = lines[li];
-      if(mode==='ja'){
-        var tokens = segmentJapanese(lineText);
-        var wrap = document.createElement('span');
-        wrap.className='line-ja'; wrap.dataset.text=lineText;
-        tokens.forEach(function(tok,idx){
-          var sp=document.createElement('span');
-          sp.className='word-ja';
-          if(state.showFG && tok.dict){ sp.innerHTML = '<ruby><rb>'+tok.text+'</rb><rt>'+tok.dict.yomi+'</rt></ruby>'; }
-          else { sp.textContent = tok.text; }
-          sp.dataset.word=(tok.text||'').trim();
-          sp.dataset.start=tok.start; sp.dataset.end=tok.end; sp.dataset.idx=idx;
-          if(tok.dict){
-            sp.dataset.dict='1';
-            if(tok.dict.yomi) sp.dataset.yomi = tok.dict.yomi;
-            if(tok.dict.gloss) sp.dataset.gloss= tok.dict.gloss;
-            if(tok.dict.ro)   sp.dataset.roma = tok.dict.ro;
-            if(tok.dict.pos)  sp.dataset.pos  = tok.dict.pos;
-            if(tok.dict.note) sp.dataset.note = tok.dict.note;
-          } else { sp.dataset.dict='0'; }
-          wrap.appendChild(sp);
-        });
-        el.appendChild(wrap);
-      } else if(mode==='ro'){
-        var parts = lineText.split(/(\s+|[.,!?¡¿…:;()\[\]'"-])/).filter(Boolean);
-        var idx=0;
-        parts.forEach(function(tok){
-          if(/\s+|[.,!?¡¿…:;()\[\]'"-]/.test(tok)){
-            el.appendChild(document.createTextNode(tok));
-          }else{
-            var sp=document.createElement('span');
-            sp.className='word-ro';
-            sp.textContent=tok;
-            sp.dataset.norm = norm(tok);
-            sp.dataset.idx = String(idx++);
-            sp.style.pointerEvents='auto';
-            sp.style.cursor='pointer';
-            el.appendChild(sp);
-          }
-        });
-      } else {
-        el.appendChild(document.createTextNode(lineText));
-      }
-      if(li<lines.length-1) el.appendChild(document.createElement('br'));
-    }
-  }
-  function renderCue(){
-    renderLine(trkJA?trkJA.track:null,capJA,'ja');
-    renderLine(trkRO?trkRO.track:null,capRO,'ro');
-    renderLine(trkES?trkES.track:null,capES,'es');
-  }
-  if(trkJA) trkJA.addEventListener('load', renderCue);
-  if(trkRO) trkRO.addEventListener('load', renderCue);
-  if(trkES) trkES.addEventListener('load', renderCue);
-  video.addEventListener('timeupdate', renderCue);
-  video.addEventListener('seeked', renderCue);
-  video.addEventListener('ratechange', renderCue);
-  window.addEventListener('load', renderCue);
-
-  // ===== highlight RO =====
-  var roBadgeEl=null;
-  function clearROHighlight(){
-    var els = capRO.querySelectorAll('.word-ro.hl'); for(var i=0;i<els.length;i++) els[i].classList.remove('hl');
-    if(roBadgeEl && roBadgeEl.parentNode) roBadgeEl.parentNode.removeChild(roBadgeEl);
-    roBadgeEl=null;
-  }
-  function highlightInRO(romaji){
-    clearROHighlight();
-    if(!state.showRO || !romaji) return;
-    var target = norm(romaji);
-    var toks = Array.prototype.slice.call(capRO.querySelectorAll('.word-ro'));
-    var norms = toks.map(function(t){ return t.dataset.norm||''; });
-
-    // (a) ventana contigua exacta (prioriza PRIMERA)
-    for(var i=0;i<norms.length;i++){
-      var cat='';
-      for(var j=i;j<norms.length;j++){
-        cat += norms[j];
-        if(cat===target){
-          for(var k=i;k<=j;k++) toks[k].classList.add('hl');
-          return;
-        }
-        if(cat.length >= target.length) break;
-      }
-    }
-    // (b) exacto 1 token
-    for(i=0;i<norms.length;i++){ if(norms[i]===target){ toks[i].classList.add('hl'); return; } }
-    // (c) inclusión — primera más larga
-    var pick=-1, bestLen=0;
-    for(i=0;i<norms.length;i++){
-      var n=norms[i];
-      if(n.indexOf(target)!==-1 || target.indexOf(n)!==-1){
-        if(bestLen===0 || n.length>bestLen){ pick=i; bestLen=n.length; }
-        if(bestLen===target.length) break;
-      }
-    }
-    if(pick!==-1){ toks[pick].classList.add('hl'); return; }
-
-    // (d) sugerencia
-    roBadgeEl=document.createElement('span');
-    roBadgeEl.className='ro-badge';
-    roBadgeEl.textContent=romaji;
-    capRO.appendChild(roBadgeEl);
-  }
-
-  // ===== popover helpers =====
-  function longestDictAt(line, pos){
-    var best=null;
-    for(var di=0; di<DICT_KEYS.length; di++){
-      var k=DICT_KEYS[di], i=line.indexOf(k);
-      if(i!==-1 && i<=pos && pos<i+k.length){
-        if(!best || k.length>best.text.length) best={text:k,start:i,end:i+k.length,entry:JA_DICT[k]};
-      }
-    }
-    return best;
-  }
-  function showPopover(x, y, entry, surface){
-    if(!pop) return;
-    pvWord.textContent = surface||'—';
-    pvRead.textContent = 'Lectura: ' + (entry&&entry.yomi || '—');
-    pvMeaning.textContent = 'Significado: ' + (entry&&entry.gloss || '—') + ((entry&&entry.note)? ' — '+entry.note : '');
-    var rect=player.getBoundingClientRect();
-    pop.style.display='block';
-    pop.style.left=(Math.min(rect.width-10, Math.max(10, x - rect.left + 8)))+'px';
-    pop.style.top =(Math.min(rect.height-10, Math.max(10, y - rect.top  + 8)) - 10)+'px';
-  }
-
-  // hover JA -> RO
-  document.addEventListener('mousemove', function(e){
-    if(!state.showJA || !capJA.contains(e.target)) return;
-    var span = e.target.closest ? e.target.closest('.word-ja') : null; if(!span){ clearROHighlight(); return; }
-    var reading = span.dataset.yomi || '';
-    var romaji  = span.dataset.roma || '';
-    var txt = span.textContent || '';
-    if(!reading && /[\u3040-\u309f]/.test(txt)){ reading = txt; }
-    if(!romaji && reading){ romaji = hiraToRoma(reading); }
-    if(romaji){ highlightInRO(romaji); } else { clearROHighlight(); }
-  }, true);
-  document.addEventListener('mouseleave', function(){ clearROHighlight(); }, true);
-
-  // click JA -> popover + sync RO
-  document.addEventListener('click', function(e){
-    if(!state.showJA) return;
-    if(!capJA.contains(e.target)){ if(!e.target.closest || !e.target.closest('#popover')) pop.style.display='none'; return; }
-    var span = e.target.closest ? e.target.closest('.word-ja') : null; if(!span) return;
-    var wrap = span.closest ? span.closest('.line-ja') : null;
-    var lineText = wrap ? (wrap.dataset.text||'') : '';
-    var start = Number(span.dataset.start)||0, end=Number(span.dataset.end)||start+(span.textContent||'').length;
-    var pos = Math.floor((start+end)/2);
-
-    var surface = span.dataset.word || span.textContent;
-    var entry = (span.dataset.dict==='1') ? {yomi:span.dataset.yomi, gloss:span.dataset.gloss, ro:span.dataset.roma, note:span.dataset.note} : null;
-    if(!entry){ var best=longestDictAt(lineText, pos); if(best){ surface=best.text; var be=best.entry; entry={yomi:be.yomi,gloss:be.gloss,ro:be.ro,note:be.note}; } }
-
-    showPopover(e.clientX, e.clientY, entry, surface);
-    var romaOut = (entry&&entry.ro) ? entry.ro : ((entry&&entry.yomi)?hiraToRoma(entry.yomi):'');
-    if(romaOut) highlightInRO(romaOut);
-  }, true);
-
-  // click RO -> popover si JA activo
-  if(capRO){
-    capRO.addEventListener('click', function(e){
-      if(!state.showJA) return;
-      var sp = e.target.closest ? e.target.closest('.word-ro') : null; if(!sp) return;
-
-      var toks = Array.prototype.slice.call(capRO.querySelectorAll('.word-ro'));
-      var norms = toks.map(function(t){ return t.dataset.norm||''; });
-      var idx   = toks.indexOf(sp);
-
-      var best=null, maxLen=4;
-      for(var len=maxLen; len>=1; len--){
-        if(idx+len-1 >= toks.length) continue;
-        var cat='', j; for(j=0;j<len;j++) cat += norms[idx+j];
-        if(RO_INDEX[cat]){ best={ entry:RO_INDEX[cat], i0:idx, i1:idx+len-1 }; break; }
-      }
-      if(!best){
-        for(var back=1; back<=3 && idx-back>=0 && !best; back++){
-          for(len=2; len<=maxLen && idx-back+len-1<toks.length; len++){
-            cat=''; for(j=0;j<len;j++) cat += norms[idx-back+j];
-            if(RO_INDEX[cat]){ best={ entry:RO_INDEX[cat], i0:idx-back, i1:idx-back+len-1 }; break; }
-          }
-        }
-      }
-      if(!best) return;
-
-      var ent = best.entry;
-      showPopover(e.clientX, e.clientY, ent, ent.surface);
-      highlightInRO(ent.ro);
+    video.addEventListener('canplay',()=> log('canplay'));
+    video.addEventListener('canplaythrough',()=> log('canplaythrough'));
+    video.addEventListener('stalled',()=> log('stalled'));
+    video.addEventListener('waiting',()=> log('waiting'));
+    video.addEventListener('suspend',()=> log('suspend (descargando)'));
+    video.addEventListener('error',()=>{
+      const code = video.error ? video.error.code : 'desconocido';
+      log('ERROR VIDEO code='+code+' (1=aborted,2=network,3=decode,4=src not supported)');
     });
-  }
 
-  // herramientas
-  var btnTest=$('#btnTest'), btnURL=$('#btnURL');
-  if(btnTest) btnTest.addEventListener('click', function(){ setSrc('https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4'); log('Cargando video de prueba MDN'); });
-  if(btnURL)  btnURL .addEventListener('click', function(){ var u=prompt('Pegá una URL directa a .mp4 (https://...)'); if(!u) return; setSrc(u.trim()); log('Cambié src a '+u); });
+    function togglePlay(){ (video.paused||video.ended)?video.play():video.pause(); }
+    [playBtn, video, bigPlay].forEach(el=>el.addEventListener('click', togglePlay));
+    video.addEventListener('play', ()=>{
+      iconPlay.textContent='⏸';
+      bigPlay.style.display='none';
+    });
+    video.addEventListener('pause', ()=>{
+      iconPlay.textContent='▶';
+      bigPlay.style.display='grid';
+    });
 
-  // atajos
-  document.addEventListener('keydown', function(e){
-    if(e.key==='j' || e.key==='J'){ if(togJA) togJA.click(); }
-    if(e.key==='a' || e.key==='A'){ if(togRO) togRO.click(); }
-    if(e.key==='e' || e.key==='E'){ if(togES) togES.click(); }
-    if(e.key==='g' || e.key==='G'){ if(togFG) togFG.click(); }
-  });
+    back10.addEventListener('click', ()=> video.currentTime=Math.max(0,(video.currentTime||0)-10));
+    fwd10.addEventListener('click', ()=> video.currentTime=Math.min(video.duration||0,(video.currentTime||0)+10));
+    function updateTime(){
+      cur.textContent=formatTime(video.currentTime);
+      const pct=(video.currentTime/(video.duration||1))*100;
+      progressBar.style.width=pct+'%';
+      seek.value=Math.round((video.currentTime/(video.duration||1))*1000)||0;
+    }
+    function updateBuffered(){
+      try{
+        if(video.buffered && video.buffered.length){
+          const end=video.buffered.end(video.buffered.length-1);
+          bufferedBar.style.width=((end/(video.duration||1))*100)+'%';
+        }
+      }catch(e){}
+    }
+    video.addEventListener('timeupdate', updateTime);
+    video.addEventListener('progress', updateBuffered);
+    video.addEventListener('loadeddata', updateBuffered);
+    seek.addEventListener('input', ()=>{
+      video.currentTime=(seek.value/1000)*(video.duration||0);
+      updateTime();
+    });
 
-  // info inicial
-  log('script cargado; JA/RO/ES listos');
-})();
+    function updateMuteIcon(){
+      const level=video.muted||video.volume===0?0:video.volume;
+      muteBtn.textContent= level===0?'🔇':(level<.5?'🔈':'🔊');
+    }
+    vol.addEventListener('input', ()=>{
+      video.volume=Number(vol.value);
+      if(video.volume>0) video.muted=false;
+      updateMuteIcon();
+    });
+    muteBtn.addEventListener('click', ()=>{
+      video.muted=!video.muted;
+      updateMuteIcon();
+    });
+    video.addEventListener('volumechange', updateMuteIcon);
+    updateMuteIcon();
+
+    speed.addEventListener('change', ()=>{ video.playbackRate=Number(speed.value); });
+    function toggleFS(){
+      if(document.fullscreenElement) document.exitFullscreen();
+      else player.requestFullscreen().catch(()=>{});
+    }
+    fs.addEventListener('click', toggleFS);
+  })();
 </script>
+</body>
+</html>
+
