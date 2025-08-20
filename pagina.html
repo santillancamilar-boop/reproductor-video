@@ -59,13 +59,15 @@
     /* highlight sincronizado */
     .hl { outline:2px solid color-mix(in oklch,var(--accent),white 15%); background:rgba(181,155,255,.12); border-radius:6px }
 
-    /* Popover */
+    /* Popover (solo JA) */
     .popover{ position:absolute; z-index:10; min-width:220px; max-width:320px; background:#fff; border:1px solid var(--edge); border-radius:14px; box-shadow:0 10px 30px rgba(0,0,0,.15); padding:10px 12px; display:none }
     .popover .word{ font-weight:800 } .popover .hint{ color:var(--muted); font-size:12px }
     .popover .meaning{ margin-top:6px }
 
+    /* Badges pequeños (romaji sugerido) */
     .ro-badge{ margin-left:8px; font-size:12px; padding:2px 6px; border-radius:999px; border:1px solid var(--edge); background:#fff }
 
+    /* Diagnóstico oculto */
     .diag{ display:none; }
     .pill{ padding:4px 8px; border-radius:999px; border:1px solid var(--edge); background:#f7f7ff; white-space:nowrap }
     .tools{ display:flex; gap:8px; padding:0 16px 16px; flex-wrap:wrap }
@@ -84,6 +86,7 @@
     <div class="stage">
       <video id="video" preload="metadata" playsinline webkit-playsinline poster="poster.jpg">
         <source id="src" src="video.mp4" type="video/mp4" />
+        <!-- Pistas (mismo origen) -->
         <track id="trk-ja" label="日本語"   kind="subtitles" srclang="ja"      src="subs-ja.vtt" default />
         <track id="trk-ro" label="Rōmaji"  kind="subtitles" srclang="ja-Latn" src="subs-ro.vtt" />
         <track id="trk-es" label="Español" kind="subtitles" srclang="es"      src="subs-es.vtt" />
@@ -134,6 +137,7 @@
           <option value="1.75">1.75×</option>
           <option value="2">2×</option>
         </select>
+        <!-- Independientes: podés combinar JA/RO/ES + Furigana -->
         <button class="btn" id="tog-ja"      aria-pressed="true"  title="Alternar Japonés">JA</button>
         <button class="btn" id="tog-romaji"  aria-pressed="false" title="Alternar Rōmaji">RO</button>
         <button class="btn" id="tog-es"      aria-pressed="false" title="Alternar Español">ES</button>
@@ -690,3 +694,4 @@
 </script>
 </body>
 </html>
+
