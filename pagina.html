@@ -164,7 +164,7 @@
   const $ = (s)=>document.querySelector(s);
   const player=$('#player'), video=$('#video'), srcEl=$('#src');
 
-  /* habilitar click en rōmaji (sin tocar CSS original) */
+  /* Habilitar click en rōmaji sin tocar tu CSS original */
   const roClickCSS = document.createElement('style');
   roClickCSS.textContent = '.track-romaji .word-ro{pointer-events:auto;cursor:pointer}';
   document.head.appendChild(roClickCSS);
@@ -190,7 +190,7 @@
   function togglePlay(){ (video.paused||video.ended)?video.play():video.pause(); }
   ;[playBtn, video, bigPlay].forEach(el=>el.addEventListener('click', togglePlay));
   video.addEventListener('play', ()=>{ iconPlay.textContent='⏸'; bigPlay.style.display='none'; });
-  video.addEventListener('pause', ()=>{ iconPlay.textContent='▶';  bigPlay.style.display='grid'; });
+  video.addEventListener('pause', ()=>{ iconPlay.textContent='▶'; bigPlay.style.display='grid'; });
 
   back10.addEventListener('click', ()=> video.currentTime=Math.max(0, (video.currentTime||0)-10));
   fwd10 .addEventListener('click', ()=> video.currentTime=Math.min(video.duration||0, (video.currentTime||0)+10));
@@ -235,7 +235,7 @@
   togES.addEventListener('click', ()=>{ state.showES=!state.showES; syncToggles(); renderCue(); });
   togFG.addEventListener('click', ()=>{ state.showFG=!state.showFG; syncToggles(); renderCue(); });
 
-  /* ======== Diccionario ======== */
+  /* ======== Diccionario (incluye partículas + uso) ======== */
   const JA_DICT={
     "孫悟飯":{yomi:"そんごはん",gloss:"Son Gohan (nombre propio)",ro:"son gohan"},
     "正しい":{yomi:"ただしい",gloss:"correcto; justo",ro:"tadashii"},
@@ -246,6 +246,7 @@
     "ではない":{yomi:"ではない",gloss:"no es; no ser (neg. de だ)",ro:"de wa nai"},
     "話し合い":{yomi:"はなしあい",gloss:"diálogo; discusión",ro:"hanashiai"},
     "など":{yomi:"など",gloss:"etc.; cosas como ~",ro:"nado"},
+    /* importante: macrones para “tsūyō shinai” */
     "通用しない":{yomi:"つうようしない",gloss:"no funciona; no surte efecto",ro:"tsūyō shinai"},
     "相手":{yomi:"あいて",gloss:"oponente; interlocutor",ro:"aite"},
     "もいるのだ":{yomi:"もいるのだ",gloss:"también hay/existen (explicativo)",ro:"mo iru no da"},
@@ -262,18 +263,18 @@
     "ことはない":{yomi:"ことはない",gloss:"no hace falta; no es necesario",ro:"koto wa nai"},
     "のが":{yomi:"のが",gloss:"(posesivo/nominalizador + が)",ro:"no ga"},
     // partículas
-    "を":{yomi:"を",gloss:"partícula de objeto directo",ro:"wo",note:"Marca el objeto directo (A を V)."},
-    "は":{yomi:"は",gloss:"tema / contraste",ro:"wa"},
-    "が":{yomi:"が",gloss:"sujeto / énfasis",ro:"ga"},
-    "に":{yomi:"に",gloss:"tiempo/destino/receptor",ro:"ni"},
-    "で":{yomi:"で",gloss:"lugar/medio de la acción",ro:"de"},
-    "と":{yomi:"と",gloss:"'y' / con / cita",ro:"to"},
-    "も":{yomi:"も",gloss:"también / incluso",ro:"mo"},
-    "の":{yomi:"の",gloss:"posesivo / nominalizador",ro:"no"},
-    "へ":{yomi:"へ",gloss:"dirección 'hacia'",ro:"e"},
-    "から":{yomi:"から",gloss:"desde / porque",ro:"kara"},
-    "まで":{yomi:"まで",gloss:"hasta",ro:"made"},
-    "より":{yomi:"より",gloss:"comparativo 'que'",ro:"yori"}
+    "を":{yomi:"を",gloss:"partícula de objeto directo",ro:"wo",note:"Marca el objeto directo de la acción (A を V)."},
+    "は":{yomi:"は",gloss:"partícula de tema / contraste",ro:"wa",note:"Presenta el tema; contrasta con が."},
+    "が":{yomi:"が",gloss:"partícula de sujeto / énfasis",ro:"ga",note:"Marca sujeto nuevo o enfatizado."},
+    "に":{yomi:"に",gloss:"tiempo/destino/receptor",ro:"ni",note:"Momento, destino, receptor (〜に)."},
+    "で":{yomi:"で",gloss:"lugar/medio de la acción",ro:"de",note:"Dónde ocurre la acción o el medio usado."},
+    "と":{yomi:"と",gloss:"'y' / con / cita",ro:"to",note:"Conjunción, compañía, o cita textual."},
+    "も":{yomi:"も",gloss:"también / incluso",ro:"mo",note:"Añade o enfatiza inclusividad."},
+    "の":{yomi:"の",gloss:"posesivo / nominalizador",ro:"no",note:"'de' / convierte en sintagma nominal."},
+    "へ":{yomi:"へ",gloss:"dirección 'hacia'",ro:"e",note:"Dirección aproximada (hacia)."},
+    "から":{yomi:"から",gloss:"desde / porque",ro:"kara",note:"Origen o causa."},
+    "まで":{yomi:"まで",gloss:"hasta",ro:"made",note:"Límite final."},
+    "より":{yomi:"より",gloss:"comparativo 'que'",ro:"yori",note:"Comparación: A より B."}
   };
   const DICT_KEYS=Object.keys(JA_DICT).sort((a,b)=>b.length-a.length);
 
@@ -429,7 +430,7 @@
     return best;
   }
 
-  /* Limpieza highlight */
+  /* Limpieza highlight / badge */
   let roBadgeEl=null;
   function clearROHighlight(){
     capRO.querySelectorAll('.hl').forEach(el=>el.classList.remove('hl'));
@@ -438,10 +439,10 @@
   }
   function clearJAHighlight(){ capJA.querySelectorAll('.hl').forEach(el=>el.classList.remove('hl')); }
 
-  // Resaltar en RO a partir de un rōmaji objetivo
+  // Resaltar en RO a partir de un rōmaji objetivo (solo si RO visible)
   function highlightInRO(romaji){
     clearROHighlight();
-    if(!romaji) return;            // (ya no depende de state.showRO)
+    if(!state.showRO || !romaji) return;
     const toks = Array.from(capRO.querySelectorAll('.word-ro'));
     if(!toks.length) return;
     const target = norm(romaji);
@@ -470,104 +471,88 @@
     roBadgeEl=document.createElement('span'); roBadgeEl.className='ro-badge'; roBadgeEl.textContent=romaji; capRO.appendChild(roBadgeEl);
   }
 
-  /* === HOVER en JAPO: borde violeta + coordina con RO === */
-  /* === HOVER en JAPO: borde violeta + coordina con RO solo si JA y RO están activos === */
-document.addEventListener('mousemove',(e)=>{
-  // si el cursor no está sobre la línea japonesa, limpiamos y salimos
-  if(!capJA.contains(e.target)){
-    clearJAHighlight();
-    clearROHighlight();   // evita que queden restos en RO
-    return;
-  }
+  /* ====== HOVERS COORDINADOS (JA ↔ RO) ====== */
 
-  const jaSpan = e.target.closest('.word-ja');
-  clearJAHighlight();
-  if(!jaSpan) return;
+  // HOVER JA → resalta JA y, si RO está activo, su rōmaji
+  document.addEventListener('mousemove', (e) => {
+    if (!state.showJA) return;
 
-  // 1) borde violeta en el token JA bajo el cursor
-  jaSpan.classList.add('hl');
-
-  // 2) sincroniza con RO SOLO si ambos toggles están activos
-  if(!(state.showJA && state.showRO)){
-    clearROHighlight();
-    return;
-  }
-
-  // Prioridad para calcular el rōmaji: data-roma > yomi > texto (hiragana)
-  let reading = jaSpan.dataset.yomi || '';
-  let romaji  = jaSpan.dataset.roma || '';
-  const txt   = jaSpan.textContent || '';
-  if(!reading && /[\u3040-\u309f]/.test(txt)) reading = txt; // si solo hay hira
-  if(!romaji && reading) romaji = hiraToRoma(reading);
-
-  if(romaji) highlightInRO(romaji); else clearROHighlight();
-});
-
-  document.addEventListener('mousemove',(e)=>{
-    if(!state.showJA) return;
-    if(!capJA.contains(e.target)){ clearJAHighlight(); return; }
-
-    const jaSpan = e.target.closest('.word-ja');
-    if(!jaSpan){ clearJAHighlight(); return; }
-
-    // borde violeta en JA
-    clearJAHighlight();
-    jaSpan.classList.add('hl');
-
-    // sincronizar con RO (cálculo de romaji preferente: ro > yomi > texto)
-    let reading = jaSpan.dataset.yomi || '';
-    let romaji  = jaSpan.dataset.roma || '';
-    const txt   = jaSpan.textContent || '';
-    if(!reading && /[\u3040-\u309f]/.test(txt)) reading = txt;
-    if(!romaji && reading) romaji = hiraToRoma(reading);
-    if(romaji) highlightInRO(romaji); else clearROHighlight();
-  });
-
-  /* === HOVER en RO: borde violeta + reflejo en JA === */
-  document.addEventListener('mousemove', (e)=>{
-    if(!state.showRO) return;
-    if(!capRO.contains(e.target)){ clearROHighlight(); if(state.showJA) clearJAHighlight(); return; }
-
-    const roSpan = e.target.closest('.word-ro');
-    if(!roSpan){ clearROHighlight(); if(state.showJA) clearJAHighlight(); return; }
-
-    // marca el token bajo cursor
-    clearROHighlight();
-    roSpan.classList.add('hl');
-
-    // intentar n-grama contiguo y reflejar en JA
-    const toks = Array.from(capRO.querySelectorAll('.word-ro'));
-    const idx  = toks.indexOf(roSpan);
-    const get  = i => (i>=0 && i<toks.length)? toks[i].textContent.trim() : null;
-
-    let match=null, entry=null, key=null, win=null;
-    outer:
-    for (let w=4; w>=1; w--) {
-      for (let start=idx-(w-1); start<=idx; start++) {
-        if (start<0) continue;
-        const parts=[];
-        for (let k=0;k<w;k++){ const t=get(start+k); if(!t){ parts.length=0; break; } parts.push(t); }
-        if(!parts.length) continue;
-        const cand = parts.join(' ');
-        for (const k of DICT_KEYS) {
-          const e = JA_DICT[k]; if(!e || !e.ro) continue;
-          if (norm(e.ro) === norm(cand)) { match=cand; entry=e; key=k; win={start, end:start+w-1}; break outer; }
-        }
-      }
+    if (!capJA.contains(e.target)) {
+      clearJAHighlight();
+      return;
     }
 
-    if(match){
-      for (let i=win.start; i<=win.end; i++) toks[i].classList.add('hl');
-      if(state.showJA){
+    const jaSpan = e.target.closest('.word-ja');
+    clearJAHighlight();
+    if (!jaSpan) return;
+
+    // borde violeta en JA
+    jaSpan.classList.add('hl');
+
+    // coordinar con RO solo si RO visible
+    if (state.showRO) {
+      let reading = jaSpan.dataset.yomi || '';
+      let romaji  = jaSpan.dataset.roma || '';
+      const txt   = jaSpan.textContent || '';
+      if (!reading && /[\u3040-\u309f]/.test(txt)) reading = txt;
+      if (!romaji && reading) romaji = hiraToRoma(reading);
+      if (romaji) highlightInRO(romaji); else clearROHighlight();
+    }
+  });
+
+  // HOVER RO → resalta RO y refleja en JA
+  document.addEventListener('mousemove', (e) => {
+    if (!state.showRO) return;
+
+    if (!capRO.contains(e.target)) {
+      clearROHighlight();
+      return;
+    }
+
+    const roSpan = e.target.closest('.word-ro');
+    clearROHighlight();
+    if (!roSpan) return;
+
+    // borde violeta en el token RO bajo el cursor
+    roSpan.classList.add('hl');
+
+    // reflejar en JA si JA visible
+    if (state.showJA) {
+      // n-grama contiguo (4→1) alrededor del cursor
+      const toks = Array.from(capRO.querySelectorAll('.word-ro'));
+      const idx  = toks.indexOf(roSpan);
+      const get  = i => (i>=0 && i<toks.length)? toks[i].textContent.trim() : null;
+
+      let match=null, entry=null, key=null, win=null;
+      outer:
+      for (let w=4; w>=1; w--) {
+        for (let start=idx-(w-1); start<=idx; start++) {
+          if (start<0) continue;
+          const parts=[];
+          for (let k=0;k<w;k++){ const t=get(start+k); if(!t){ parts.length=0; break; } parts.push(t); }
+          if(!parts.length) continue;
+          const cand = parts.join(' ');
+          for (const k of DICT_KEYS) {
+            const e2 = JA_DICT[k]; if(!e2 || !e2.ro) continue;
+            if (norm(e2.ro) === norm(cand)) { match=cand; entry=e2; key=k; win={start, end:start+w-1}; break outer; }
+          }
+        }
+      }
+
+      if (match) {
+        // resalta todo el n-grama en RO
+        for (let i=win.start; i<=win.end; i++) toks[i].classList.add('hl');
+
+        // resalta en JA por clave exacta o por solapamiento
         clearJAHighlight();
         let found=false;
         capJA.querySelectorAll('.word-ja').forEach(sp=>{
-          if(sp.dataset.word===key){ sp.classList.add('hl'); found=true; }
+          if (sp.dataset.word === key) { sp.classList.add('hl'); found=true; }
         });
         if(!found){
           const wrap=capJA.querySelector('.line-ja');
-          const line=wrap?(wrap.dataset.text||''):'';
-          const pos=line.indexOf(key);
+          const line=wrap ? (wrap.dataset.text || '') : '';
+          const pos = line.indexOf(key);
           if(pos>=0){
             capJA.querySelectorAll('.word-ja').forEach(sp=>{
               const s=Number(sp.dataset.start)||0, en=Number(sp.dataset.end)||0;
@@ -579,7 +564,11 @@ document.addEventListener('mousemove',(e)=>{
     }
   });
 
-  document.addEventListener('mouseleave', ()=>{ clearJAHighlight(); clearROHighlight(); }, true);
+  // Limpieza cuando el mouse sale del documento
+  document.addEventListener('mouseleave', ()=>{
+    clearJAHighlight();
+    clearROHighlight();
+  }, true);
 
   // Click JA: popover + sincroniza RO
   document.addEventListener('click',(e)=>{
@@ -623,6 +612,7 @@ document.addEventListener('mousemove',(e)=>{
     const idx  = toks.indexOf(roSpan);
     const get  = i => (i>=0 && i<toks.length)? toks[i].textContent.trim() : null;
 
+    // Candidatos contiguos hasta 4 tokens
     const candidates = [];
     for (let w=4; w>=1; w--) {
       for (let start=idx-(w-1); start<=idx; start++) {
@@ -633,6 +623,7 @@ document.addEventListener('mousemove',(e)=>{
       }
     }
 
+    // Match con ro del diccionario
     let match=null, entry=null, key=null;
     const keysWithRO = DICT_KEYS.filter(k => JA_DICT[k]?.ro);
     for (const cand of candidates) {
@@ -644,6 +635,7 @@ document.addEventListener('mousemove',(e)=>{
     }
     if(!entry) return;
 
+    // Popover
     pvWord.textContent = key;
     pvRead.textContent = 'Lectura: ' + (entry.yomi || '—');
     pvMeaning.textContent = 'Significado: ' + (entry.gloss || '—') + (entry.note ? ' · Uso: ' + entry.note : '');
@@ -652,9 +644,11 @@ document.addEventListener('mousemove',(e)=>{
     pop.style.left=(Math.min(rect.width-10, Math.max(10, e.clientX - rect.left + 8)))+'px';
     pop.style.top =(Math.min(rect.height-10, Math.max(10, e.clientY - rect.top + 8)) - 10)+'px';
 
+    // Highlight n-grama en RO
     clearROHighlight();
     for (let i = match.start; i <= match.end; i++) toks[i].classList.add('hl');
 
+    // Si JA visible, también resaltá la parte correspondiente
     if (state.showJA) {
       clearJAHighlight();
       const wrap = capJA.querySelector('.line-ja');
@@ -684,4 +678,5 @@ document.addEventListener('mousemove',(e)=>{
 </script>
 </body>
 </html>
+
 
