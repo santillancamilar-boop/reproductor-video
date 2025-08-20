@@ -535,7 +535,34 @@ document.addEventListener('mousemove', (e)=>{
 });
 
   document.addEventListener('mousemove',(e)=>{
-    if(!state.showJA || !capJA.contains(e.target)) return;
+   function clearJAHighlight(){
+  capJA.querySelectorAll('.hl').forEach(el=>el.classList.remove('hl'));
+}
+
+document.addEventListener('mousemove',(e)=>{
+  if(!state.showJA) return;
+  if(!capJA.contains(e.target)){ clearJAHighlight(); clearROHighlight(); return; }
+
+  const span = e.target.closest('.word-ja');
+  if(!span){ clearJAHighlight(); clearROHighlight(); return; }
+
+  // aro violeta en JA
+  clearJAHighlight();
+  span.classList.add('hl');
+
+  // sincroniza con RO (igual que antes)
+  let reading = span.dataset.yomi || '';
+  let romaji  = span.dataset.roma || '';
+  const txt   = span.textContent || '';
+  if(!reading && /[\u3040-\u309f]/.test(txt)) reading = txt;
+  if(!romaji && reading) romaji = hiraToRoma(reading);
+  if(romaji) highlightInRO(romaji); else clearROHighlight();
+});
+
+document.addEventListener('mouseleave', ()=>{
+  clearJAHighlight();
+  clearROHighlight();
+}, true);
     const span=e.target.closest('.word-ja'); if(!span) { clearROHighlight(); return; }
     let reading = span.dataset.yomi || '';
     let romaji  = span.dataset.roma || '';
@@ -656,6 +683,7 @@ document.addEventListener('mousemove', (e)=>{
 </script>
 </body>
 </html>
+
 
 
 
