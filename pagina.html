@@ -471,6 +471,38 @@
   }
 
   /* === HOVER en JAPO: borde violeta + coordina con RO === */
+  /* === HOVER en JAPO: borde violeta + coordina con RO solo si JA y RO están activos === */
+document.addEventListener('mousemove',(e)=>{
+  // si el cursor no está sobre la línea japonesa, limpiamos y salimos
+  if(!capJA.contains(e.target)){
+    clearJAHighlight();
+    clearROHighlight();   // evita que queden restos en RO
+    return;
+  }
+
+  const jaSpan = e.target.closest('.word-ja');
+  clearJAHighlight();
+  if(!jaSpan) return;
+
+  // 1) borde violeta en el token JA bajo el cursor
+  jaSpan.classList.add('hl');
+
+  // 2) sincroniza con RO SOLO si ambos toggles están activos
+  if(!(state.showJA && state.showRO)){
+    clearROHighlight();
+    return;
+  }
+
+  // Prioridad para calcular el rōmaji: data-roma > yomi > texto (hiragana)
+  let reading = jaSpan.dataset.yomi || '';
+  let romaji  = jaSpan.dataset.roma || '';
+  const txt   = jaSpan.textContent || '';
+  if(!reading && /[\u3040-\u309f]/.test(txt)) reading = txt; // si solo hay hira
+  if(!romaji && reading) romaji = hiraToRoma(reading);
+
+  if(romaji) highlightInRO(romaji); else clearROHighlight();
+});
+
   document.addEventListener('mousemove',(e)=>{
     if(!state.showJA) return;
     if(!capJA.contains(e.target)){ clearJAHighlight(); return; }
@@ -652,3 +684,4 @@
 </script>
 </body>
 </html>
+
