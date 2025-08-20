@@ -510,6 +510,71 @@
   }, true);
 
   /* Click en ROMAJI (si JA está visible): muestra significado (busca uni/bi/tri-gramas) */
+  /* Click en ROMAJI: popover + highlight (como en JA) */
+document.addEventListener('click',(e)=>{
+  if(!state.showRO) return;                     // basta con que esté RO visible
+  if(!capRO.contains(e.target)) return;
+  const roSpan = e.target.closest('.word-ro'); if(!roSpan) return;
+
+  // tokens y posición clickeada
+  const toks = Array.from(capRO.querySelectorAll('.word-ro'));
+  const idx  = toks.indexOf(roSpan);
+  const get  = i => (i>=0 && i<toks.length)? toks[i].textContent.trim() : null;
+
+  // candidatos contiguos centrados en el click (hasta 4 palabras: p.ej. "mo iru no da")
+  const candidates = [];
+  for (let w=4; w>=1; w--) {
+    for (let start=idx-(w-1); start<=idx; start++) {
+      if (start<0) continue;
+      const parts=[];
+      for (let k=0;k<w;k++){ const t=get(start+k); if(!t){ parts.length=0; break; } parts.push(t); }
+      if(parts.length) candidates.push({start, end:start+w-1, text:parts.join(' ')});
+    }
+  }
+
+  // matcheo contra entradas con romaji en el diccionario
+  let match=null, entry=null, key=null;
+  const keysWithRO = DICT_KEYS.filter(k => JA_DICT[k]?.ro);
+  for (const cand of candidates) {
+    const cn = norm(cand.text);
+    for (const k of keysWithRO) {
+      if (norm(JA_DICT[k].ro) === cn) { match=cand; entry=JA_DICT[k]; key=k; break; }
+    }
+    if (match) break;
+  }
+  if(!entry) return;
+
+  // Popover (igual que en JA)
+  pvWord.textContent = key;
+  pvRead.textContent = 'Lectura: ' + (entry.yomi || '—');
+  pvMeaning.textContent = 'Significado: ' + (entry.gloss || '—') + (entry.note ? ' · Uso: ' + entry.note : '');
+  const rect=player.getBoundingClientRect();
+  pop.style.display='block';
+  pop.style.left=(Math.min(rect.width-10, Math.max(10, e.clientX - rect.left + 8)))+'px';
+  pop.style.top =(Math.min(rect.height-10, Math.max(10, e.clientY - rect.top + 8)) - 10)+'px';
+
+  // Highlight en RO (todos los tokens del n-grama)
+  clearROHighlight();
+  for (let i = match.start; i <= match.end; i++) toks[i].classList.add('hl');
+
+  // Opcional: si JA está visible, resaltá también la porción correspondiente en JA
+  if (state.showJA) {
+    capJA.querySelectorAll('.hl').forEach(el=>el.classList.remove('hl'));
+    const lineWrap = capJA.querySelector('.line-ja');
+    const lineText = lineWrap ? (lineWrap.dataset.text || '') : '';
+    if (lineText && key) {
+      const jaIndex = lineText.indexOf(key);
+      if (jaIndex >= 0) {
+        const spans = Array.from(capJA.querySelectorAll('.word-ja'));
+        spans.forEach(sp=>{
+          const s = Number(sp.dataset.start)||0, e2 = Number(sp.dataset.end)||0;
+          if (s < jaIndex + key.length && e2 > jaIndex) sp.classList.add('hl');
+        });
+      }
+    }
+  }
+});
+
   document.addEventListener('click',(e)=>{
     if(!state.showRO || !state.showJA) return;
     if(!capRO.contains(e.target)) return;
@@ -557,5 +622,6 @@
 </script>
 </body>
 </html>
+
 
 
