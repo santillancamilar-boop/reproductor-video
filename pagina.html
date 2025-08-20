@@ -708,6 +708,244 @@ document.addEventListener('click',(e)=>{
     }
   }
 });
+// Bloque JS completo y limpio con hover sincronizado JA ⇄ RO, borde violeta y popover sincronizado
+
+// === HOVER en JAPONÉS → borde violeta + sincroniza RO ===
+document.addEventListener('mousemove', (e) => {
+  if (!state.showJA) return;
+  if (!capJA.contains(e.target)) { clearJAHighlight(); return; }
+
+  const jaSpan = e.target.closest('.word-ja');
+  if (!jaSpan) { clearJAHighlight(); return; }
+
+  clearJAHighlight();
+  jaSpan.classList.add('hl');
+
+  const lineWrap = jaSpan.closest('.line-ja');
+  const lineText = lineWrap ? lineWrap.dataset.text || '' : '';
+  const start = Number(jaSpan.dataset.start) || 0;
+  const end = Number(jaSpan.dataset.end) || start + (jaSpan.textContent || '').length;
+  const pos = Math.floor((start + end) / 2);
+
+  let surface = jaSpan.dataset.word || jaSpan.textContent;
+  let entry = (jaSpan.dataset.dict === '1') ? {
+    yomi: jaSpan.dataset.yomi,
+    gloss: jaSpan.dataset.gloss,
+    ro: jaSpan.dataset.roma,
+    note: jaSpan.dataset.note
+  } : null;
+
+  if (!entry) {
+    const best = longestDictAt(lineText, pos);
+    if (best) {
+      surface = best.text;
+      entry = {
+        yomi: best.entry.yomi,
+        gloss: best.entry.gloss,
+        ro: best.entry.ro,
+        note: best.entry.note
+      };
+    }
+  }
+
+  const romaOut = entry?.ro || (entry?.yomi ? hiraToRoma(entry.yomi) : '');
+  if (romaOut) highlightInRO(romaOut);
+  else clearROHighlight();
+});
+
+// === HOVER en RŌMAJI → borde violeta + sincroniza JA ===
+document.addEventListener('mousemove', (e) => {
+  if (!state.showRO) return;
+
+  if (!capRO.contains(e.target)) {
+    clearROHighlight();
+    if (state.showJA) clearJAHighlight();
+    return;
+  }
+
+  const roSpan = e.target.closest('.word-ro');
+  if (!roSpan) {
+    clearROHighlight();
+    if (state.showJA) clearJAHighlight();
+    return;
+  }
+
+  clearROHighlight();
+  roSpan.classList.add('hl');
+
+  const toks = Array.from(capRO.querySelectorAll('.word-ro'));
+  const idx = toks.indexOf(roSpan);
+  const get = i => (i >= 0 && i < toks.length) ? toks[i].textContent.trim() : null;
+
+  const candidates = [];
+  for (let w = 4; w >= 1; w--) {
+    for (let start = idx - (w - 1); start <= idx; start++) {
+      if (start < 0) continue;
+      const parts = [];
+      for (let k = 0; k < w; k++) {
+        const t = get(start + k);
+        if (!t) { parts.length = 0; break; }
+        parts.push(t);
+      }
+      if (parts.length) candidates.push({ start, end: start + w - 1, text: parts.join(' ') });
+    }
+  }
+
+  let match = null, entry = null, key = null;
+  const keysWithRO = DICT_KEYS.filter(k => JA_DICT[k]?.ro);
+  for (const cand of candidates) {
+    const cn = norm(cand.text);
+    for (const k of keysWithRO) {
+      if (norm(JA_DICT[k].ro) === cn) {
+        match = cand;
+        entry = JA_DICT[k];
+        key = k;
+        break;
+      }
+    }
+    if (match) break;
+  }
+
+  if (!entry) return;
+
+  for (let i = match.start; i <= match.end; i++) toks[i].classList.add('hl');
+
+  if (state.showJA) {
+    clearJAHighlight();
+    const spans = Array.from(capJA.querySelectorAll('.word-ja'));
+    const wrap = capJA.querySelector('.line-ja');
+    const lineText = wrap ? (wrap.dataset.text || '') : '';
+    let jStart = lineText.indexOf(key);
+
+    if (jStart >= 0) {
+      spans.forEach(sp => {
+        const s = Number(sp.dataset.start) || 0;
+        const e2 = Number(sp.dataset.end) || 0;
+        if (s < jStart + key.length && e2 > jStart) sp.classList.add('hl');
+      });
+    } else {
+      const byRo = norm(entry.ro);
+      spans.forEach(sp => {
+        const r = sp.dataset.roma || (sp.dataset.yomi ? hiraToRoma(sp.dataset.yomi) : '');
+        if (r && norm(r) && byRo.includes(norm(r))) sp.classList.add('hl');
+      });
+    }
+  }
+});
+
+// === CLICK EN JAPONÉS → popover + sincroniza RO ===
+document.addEventListener('click', (e) => {
+  if (!state.showJA) return;
+  if (!capJA.contains(e.target)) { if (!e.target.closest('#popover')) pop.style.display = 'none'; return; }
+
+  const span = e.target.closest('.word-ja'); if (!span) return;
+  const lineWrap = span.closest('.line-ja');
+  const lineText = lineWrap ? lineWrap.dataset.text || '' : '';
+  const start = Number(span.dataset.start) || 0, end = Number(span.dataset.end) || start + (span.textContent || '').length;
+  const pos = Math.floor((start + end) / 2);
+
+  let surface = span.dataset.word || span.textContent;
+  let entry = (span.dataset.dict === '1') ? {
+    yomi: span.dataset.yomi,
+    gloss: span.dataset.gloss,
+    ro: span.dataset.roma,
+    note: span.dataset.note
+  } : null;
+
+  if (!entry) {
+    const best = longestDictAt(lineText, pos);
+    if (best) {
+      surface = best.text;
+      entry = {
+        yomi: best.entry.yomi,
+        gloss: best.entry.gloss,
+        ro: best.entry.ro,
+        note: best.entry.note
+      };
+    }
+  }
+
+  pvWord.textContent = surface;
+  pvRead.textContent = 'Lectura: ' + (entry?.yomi || '—');
+  pvMeaning.textContent = 'Significado: ' + (entry?.gloss || '—') + (entry?.note ? ' · Uso: ' + entry.note : '');
+
+  const rect = player.getBoundingClientRect();
+  pop.style.display = 'block';
+  pop.style.left = (Math.min(rect.width - 10, Math.max(10, e.clientX - rect.left + 8))) + 'px';
+  pop.style.top = (Math.min(rect.height - 10, Math.max(10, e.clientY - rect.top + 8)) - 10) + 'px';
+
+  const romaOut = entry?.ro || (entry?.yomi ? hiraToRoma(entry.yomi) : '');
+  if (romaOut) highlightInRO(romaOut);
+});
+
+// === CLICK EN RŌMAJI → popover igual que JA ===
+document.addEventListener('click',(e)=>{
+  if(!state.showRO) return;
+  if(!capRO.contains(e.target)) return;
+  const roSpan = e.target.closest('.word-ro'); if(!roSpan) return;
+
+  const toks = Array.from(capRO.querySelectorAll('.word-ro'));
+  const idx  = toks.indexOf(roSpan);
+  const get  = i => (i>=0 && i<toks.length)? toks[i].textContent.trim() : null;
+
+  const candidates = [];
+  for (let w=4; w>=1; w--) {
+    for (let start=idx-(w-1); start<=idx; start++) {
+      if (start<0) continue;
+      const parts=[];
+      for (let k=0;k<w;k++){ const t=get(start+k); if(!t){ parts.length=0; break; } parts.push(t); }
+      if(parts.length) candidates.push({start, end:start+w-1, text:parts.join(' ')});
+    }
+  }
+
+  let match=null, entry=null, key=null;
+  const keysWithRO = DICT_KEYS.filter(k => JA_DICT[k]?.ro);
+  for (const cand of candidates) {
+    const cn = norm(cand.text);
+    for (const k of keysWithRO) {
+      if (norm(JA_DICT[k].ro) === cn) { match=cand; entry=JA_DICT[k]; key=k; break; }
+    }
+    if(match) break;
+  }
+  if(!entry) return;
+
+  pvWord.textContent = key;
+  pvRead.textContent = 'Lectura: ' + (entry.yomi || '—');
+  pvMeaning.textContent = 'Significado: ' + (entry.gloss || '—') + (entry.note ? ' · Uso: ' + entry.note : '');
+  const rect=player.getBoundingClientRect();
+  pop.style.display='block';
+  pop.style.left=(Math.min(rect.width-10, Math.max(10, e.clientX - rect.left + 8)))+'px';
+  pop.style.top =(Math.min(rect.height-10, Math.max(10, e.clientY - rect.top + 8)) - 10)+'px';
+
+  clearROHighlight();
+  for (let i = match.start; i <= match.end; i++) toks[i].classList.add('hl');
+
+  if (state.showJA) {
+    capJA.querySelectorAll('.hl').forEach(el=>el.classList.remove('hl'));
+    const spans = Array.from(capJA.querySelectorAll('.word-ja'));
+    const wrap = capJA.querySelector('.line-ja');
+    const lineText = wrap ? (wrap.dataset.text || '') : '';
+    let jStart = lineText.indexOf(key);
+    if (jStart >= 0) {
+      spans.forEach(sp=>{
+        const s = Number(sp.dataset.start)||0, e2 = Number(sp.dataset.end)||0;
+        if (s < jStart + key.length && e2 > jStart) sp.classList.add('hl');
+      });
+    } else {
+      const byRo = norm(entry.ro);
+      spans.forEach(sp=>{
+        const r = sp.dataset.roma || (sp.dataset.yomi ? hiraToRoma(sp.dataset.yomi) : '');
+        if (r && norm(r) && byRo.includes(norm(r))) sp.classList.add('hl');
+      });
+    }
+  }
+});
+
+// === LIMPIEZA al salir del documento ===
+document.addEventListener('mouseleave', () => {
+  clearJAHighlight();
+  clearROHighlight();
+}, true);
 
   
   // Herramientas y atajos
@@ -723,6 +961,7 @@ document.addEventListener('click',(e)=>{
 </script>
 </body>
 </html>
+
 
 
 
