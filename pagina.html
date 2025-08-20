@@ -231,7 +231,6 @@
 
   /* ======== Diccionario (incluye partículas con uso) ======== */
   const JA_DICT={
-    // vocab del clip
     "孫悟飯":{yomi:"そんごはん",gloss:"Son Gohan (nombre propio)",ro:"son gohan"},
     "正しい":{yomi:"ただしい",gloss:"correcto; justo",ro:"tadashii"},
     "こと":{yomi:"こと",gloss:"cosa; hecho",ro:"koto"},
@@ -241,7 +240,7 @@
     "ではない":{yomi:"ではない",gloss:"no es; no ser (neg. de だ)",ro:"de wa nai"},
     "話し合い":{yomi:"はなしあい",gloss:"diálogo; discusión",ro:"hanashiai"},
     "など":{yomi:"など",gloss:"etc.; cosas como ~",ro:"nado"},
-    "通用しない":{yomi:"つうようしない",gloss:"no funciona; no surte efecto",ro:"tsuuyou shinai"},
+    "通用しない":{yomi:"つうようしない",gloss:"no funciona; no surte efecto",ro:"tsuyou shinai"},
     "相手":{yomi:"あいて",gloss:"oponente; interlocutor",ro:"aite"},
     "もいるのだ":{yomi:"もいるのだ",gloss:"también hay/existen (explicativo)",ro:"mo iru no da"},
     "いるのだ":{yomi:"いるのだ",gloss:"(alguien) está/hay (explicativo)",ro:"iru no da"},
@@ -256,6 +255,7 @@
     "我慢する":{yomi:"がまんする",gloss:"aguantarse / soportar",ro:"gaman suru"},
     "ことはない":{yomi:"ことはない",gloss:"no hace falta; no es necesario",ro:"koto wa nai"},
     "のが":{yomi:"のが",gloss:"(posesivo/nominalizador + が)",ro:"no ga"},
+
     // partículas (con uso)
     "を":{yomi:"を",gloss:"partícula de objeto directo",ro:"wo",note:"Marca el objeto directo de la acción (A を V)."},
     "は":{yomi:"は",gloss:"partícula de tema / contraste",ro:"wa",note:"Presenta el tema; contrasta con が."},
@@ -272,7 +272,7 @@
   };
   const DICT_KEYS=Object.keys(JA_DICT).sort((a,b)=>b.length-a.length);
 
-  // Segmentación JA: prioriza diccionario, luego Intl.Segmenter si está
+  // Segmentación JA
   const segJA = (typeof Intl!=='undefined' && Intl.Segmenter)? new Intl.Segmenter('ja',{granularity:'word'}) : null;
   function sliceWithDict(line){
     const out=[]; let i=0;
@@ -317,7 +317,7 @@
     'さ':'sa','し':'shi','す':'su','せ':'se','そ':'so','た':'ta','ち':'chi','つ':'tsu','て':'te','と':'to',
     'な':'na','に':'ni','ぬ':'nu','ね':'ne','の':'no','は':'ha','ひ':'hi','ふ':'fu','へ':'he','ほ':'ho',
     'ま':'ma','み':'mi','む':'mu','め':'me','も':'mo','や':'ya','ゆ':'yu','よ':'yo','ら':'ra','り':'ri','る':'ru','れ':'re','ろ':'ro',
-    'わ':'wa','を':'wo','ん':'n',   /* <- aquí cambiamos a 'wo' */
+    'わ':'wa','を':'wo','ん':'n',
     'が':'ga','ぎ':'gi','ぐ':'gu','げ':'ge','ご':'go','ざ':'za','じ':'ji','ず':'zu','ぜ':'ze','ぞ':'zo',
     'だ':'da','ぢ':'ji','づ':'zu','で':'de','ど':'do','ば':'ba','び':'bi','ぶ':'bu','べ':'be','ぼ':'bo','ぱ':'pa','ぴ':'pi','ぷ':'pu','ぺ':'pe','ぽ':'po',
     'ぁ':'a','ぃ':'i','ぅ':'u','ぇ':'e','ぉ':'o','ゃ':'ya','ゅ':'yu','ょ':'yo','っ':'','ー':''
@@ -333,7 +333,7 @@
     return out;
   }
 
-  // normalizador (maneja macrones → secuencias)
+  // normalizador (maneja macrones)
   const norm = (s)=>{
     if(!s) return '';
     const mac = {'Ā':'aa','ā':'aa','Ī':'ii','ī':'ii','Ū':'uu','ū':'uu','Ē':'ee','ē':'ee','Ō':'ou','ō':'ou'};
@@ -373,7 +373,7 @@
             sp.dataset.dict='1';
             sp.dataset.yomi = tok.dict.yomi || '';
             sp.dataset.gloss= tok.dict.gloss || '';
-            if(tok.dict.ro) sp.dataset.roma = tok.dict.ro;   // romaji preferente (p.ej. は→wa, を→wo)
+            if(tok.dict.ro) sp.dataset.roma = tok.dict.ro;   // romaji preferente
             if(tok.dict.note) sp.dataset.note = tok.dict.note;
           } else sp.dataset.dict='0';
           wrap.appendChild(sp);
@@ -437,7 +437,6 @@
     const toks = Array.from(capRO.querySelectorAll('.word-ro'));
     const norms = toks.map(t=>t.dataset.norm||'');
 
-    // ventana contigua exacta
     for(let i=0;i<norms.length;i++){
       let cat='';
       for(let j=i;j<norms.length;j++){
@@ -449,9 +448,8 @@
         if(cat.length >= target.length) break;
       }
     }
-    // exacto simple
     for(let i=0;i<norms.length;i++){ if(norms[i]===target){ toks[i].classList.add('hl'); return; } }
-    // fallback: inclusión (primera más larga)
+
     let pick=-1, bestLen=0;
     for(let i=0;i<norms.length;i++){
       const n=norms[i];
@@ -459,7 +457,6 @@
     }
     if(pick!==-1){ toks[pick].classList.add('hl'); return; }
 
-    // sin match: badge
     roBadgeEl=document.createElement('span'); roBadgeEl.className='ro-badge'; roBadgeEl.textContent=romaji; capRO.appendChild(roBadgeEl);
   }
 
@@ -509,112 +506,68 @@
     if(romaOut) highlightInRO(romaOut);
   }, true);
 
-  /* Click en ROMAJI (si JA está visible): muestra significado (busca uni/bi/tri-gramas) */
-  /* Click en ROMAJI: popover + highlight (como en JA) */
-document.addEventListener('click',(e)=>{
-  if(!state.showRO) return;                     // basta con que esté RO visible
-  if(!capRO.contains(e.target)) return;
-  const roSpan = e.target.closest('.word-ro'); if(!roSpan) return;
-
-  // tokens y posición clickeada
-  const toks = Array.from(capRO.querySelectorAll('.word-ro'));
-  const idx  = toks.indexOf(roSpan);
-  const get  = i => (i>=0 && i<toks.length)? toks[i].textContent.trim() : null;
-
-  // candidatos contiguos centrados en el click (hasta 4 palabras: p.ej. "mo iru no da")
-  const candidates = [];
-  for (let w=4; w>=1; w--) {
-    for (let start=idx-(w-1); start<=idx; start++) {
-      if (start<0) continue;
-      const parts=[];
-      for (let k=0;k<w;k++){ const t=get(start+k); if(!t){ parts.length=0; break; } parts.push(t); }
-      if(parts.length) candidates.push({start, end:start+w-1, text:parts.join(' ')});
-    }
-  }
-
-  // matcheo contra entradas con romaji en el diccionario
-  let match=null, entry=null, key=null;
-  const keysWithRO = DICT_KEYS.filter(k => JA_DICT[k]?.ro);
-  for (const cand of candidates) {
-    const cn = norm(cand.text);
-    for (const k of keysWithRO) {
-      if (norm(JA_DICT[k].ro) === cn) { match=cand; entry=JA_DICT[k]; key=k; break; }
-    }
-    if (match) break;
-  }
-  if(!entry) return;
-
-  // Popover (igual que en JA)
-  pvWord.textContent = key;
-  pvRead.textContent = 'Lectura: ' + (entry.yomi || '—');
-  pvMeaning.textContent = 'Significado: ' + (entry.gloss || '—') + (entry.note ? ' · Uso: ' + entry.note : '');
-  const rect=player.getBoundingClientRect();
-  pop.style.display='block';
-  pop.style.left=(Math.min(rect.width-10, Math.max(10, e.clientX - rect.left + 8)))+'px';
-  pop.style.top =(Math.min(rect.height-10, Math.max(10, e.clientY - rect.top + 8)) - 10)+'px';
-
-  // Highlight en RO (todos los tokens del n-grama)
-  clearROHighlight();
-  for (let i = match.start; i <= match.end; i++) toks[i].classList.add('hl');
-
-  // Opcional: si JA está visible, resaltá también la porción correspondiente en JA
-  if (state.showJA) {
-    capJA.querySelectorAll('.hl').forEach(el=>el.classList.remove('hl'));
-    const lineWrap = capJA.querySelector('.line-ja');
-    const lineText = lineWrap ? (lineWrap.dataset.text || '') : '';
-    if (lineText && key) {
-      const jaIndex = lineText.indexOf(key);
-      if (jaIndex >= 0) {
-        const spans = Array.from(capJA.querySelectorAll('.word-ja'));
-        spans.forEach(sp=>{
-          const s = Number(sp.dataset.start)||0, e2 = Number(sp.dataset.end)||0;
-          if (s < jaIndex + key.length && e2 > jaIndex) sp.classList.add('hl');
-        });
-      }
-    }
-  }
-});
-
+  /* Click en ROMAJI: popover + highlight, igual que en JA */
   document.addEventListener('click',(e)=>{
-    if(!state.showRO || !state.showJA) return;
+    if(!state.showRO) return;
     if(!capRO.contains(e.target)) return;
     const roSpan = e.target.closest('.word-ro'); if(!roSpan) return;
 
-    const toks = Array.from(capRO.querySelectorAll('.word-ro'));
-    const idx = toks.indexOf(roSpan);
+    const toks  = Array.from(capRO.querySelectorAll('.word-ro'));
+    const idx   = toks.indexOf(roSpan);
+    const get=(i)=> (i>=0 && i<toks.length)? toks[i].textContent.trim() : null;
 
-    const get = i => (i>=0 && i<toks.length)? toks[i].textContent.trim() : null;
-    const cand = [];
-    if(get(idx)) cand.push(get(idx));
-    if(get(idx) && get(idx+1)) cand.push(get(idx)+' '+get(idx+1));
-    if(get(idx-1) && get(idx)) cand.push(get(idx-1)+' '+get(idx));
-    if(get(idx-1) && get(idx) && get(idx+1)) cand.push(get(idx-1)+' '+get(idx)+' '+get(idx+1));
-
-    let foundKey=null, foundEntry=null, foundCand='';
-    outer: for(const c of cand){
-      const cn = norm(c);
-      for(const k of DICT_KEYS){
-        const e = JA_DICT[k];
-        if(!e || !e.ro) continue;
-        if(norm(e.ro)===cn){ foundKey=k; foundEntry=e; foundCand=c; break outer; }
+    const candidates=[];
+    for(let w=4; w>=1; w--){
+      for(let start=idx-(w-1); start<=idx; start++){
+        if(start<0) continue;
+        const parts=[];
+        for(let k=0;k<w;k++){ const t=get(start+k); if(!t){ parts.length=0; break; } parts.push(t); }
+        if(parts.length) candidates.push({start, end:start+w-1, text:parts.join(' ')});
       }
     }
 
-    if(foundEntry){
-      pvWord.textContent = foundKey;
-      pvRead.textContent = 'Lectura: ' + (foundEntry.yomi || '—');
-      pvMeaning.textContent = 'Significado: ' + (foundEntry.gloss || '—') + (foundEntry.note? ' · Uso: ' + foundEntry.note : '');
+    let match=null, entry=null, key=null;
+    const keysWithRO = DICT_KEYS.filter(k => JA_DICT[k]?.ro);
+    for(const cand of candidates){
+      const cn = norm(cand.text);
+      for(const k of keysWithRO){
+        if(norm(JA_DICT[k].ro) === cn){ match=cand; entry=JA_DICT[k]; key=k; break; }
+      }
+      if(match) break;
+    }
+    if(!entry) return;
 
-      const rect=player.getBoundingClientRect();
-      pop.style.display='block';
-      pop.style.left=(Math.min(rect.width-10, Math.max(10, e.clientX - rect.left + 8)))+'px';
-      pop.style.top =(Math.min(rect.height-10, Math.max(10, e.clientY - rect.top + 8)) - 10)+'px';
+    pvWord.textContent = key;
+    pvRead.textContent = 'Lectura: ' + (entry.yomi || '—');
+    pvMeaning.textContent = 'Significado: ' + (entry.gloss || '—') + (entry.note ? ' · Uso: ' + entry.note : '');
 
-      highlightInRO(foundCand); // resalta el n-grama en RO
+    const rect=player.getBoundingClientRect();
+    pop.style.display='block';
+    pop.style.left=(Math.min(rect.width-10, Math.max(10, e.clientX - rect.left + 8)))+'px';
+    pop.style.top =(Math.min(rect.height-10, Math.max(10, e.clientY - rect.top + 8)) - 10)+'px';
+
+    clearROHighlight();
+    for(let i=match.start;i<=match.end;i++) toks[i].classList.add('hl');
+
+    // si JA visible, resalta la porción equivalente
+    if(state.showJA && key){
+      capJA.querySelectorAll('.hl').forEach(el=>el.classList.remove('hl'));
+      const lineWrap = capJA.querySelector('.line-ja');
+      const lineText = lineWrap ? (lineWrap.dataset.text || '') : '';
+      if(lineText){
+        const jaIndex = lineText.indexOf(key);
+        if(jaIndex>=0){
+          const spans = Array.from(capJA.querySelectorAll('.word-ja'));
+          spans.forEach(sp=>{
+            const s = Number(sp.dataset.start)||0, e2 = Number(sp.dataset.end)||0;
+            if (s < jaIndex + key.length && e2 > jaIndex) sp.classList.add('hl');
+          });
+        }
+      }
     }
   });
 
-  // Herramientas y atajos (sin cambios funcionales del video)
+  // Herramientas y atajos (sin tocar el video)
   $('#btnTest').addEventListener('click', ()=>{ setSrc('https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4'); log('Cargando video de prueba MDN'); });
   $('#btnURL').addEventListener('click', ()=>{ const u=prompt('Pegá una URL directa a .mp4 (https://...)'); if(!u) return; setSrc(u.trim()); log('Cambié src a '+u); });
   document.addEventListener('keydown',(e)=>{ if(e.key==='j' || e.key==='J'){ togJA.click(); } if(e.key==='a' || e.key==='A'){ togRO.click(); } if(e.key==='e' || e.key==='E'){ togES.click(); } if(e.key==='g' || e.key==='G'){ togFG.click(); } });
@@ -622,6 +575,7 @@ document.addEventListener('click',(e)=>{
 </script>
 </body>
 </html>
+
 
 
 
