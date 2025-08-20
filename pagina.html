@@ -163,6 +163,9 @@
 (function(){
   const $ = (s)=>document.querySelector(s);
   const player=$('#player'), video=$('#video'), srcEl=$('#src');
+    const roClickCSS = document.createElement('style');
+  roClickCSS.textContent = '.track-romaji .word-ro{pointer-events:auto;cursor:pointer}';
+  document.head.appendChild(roClickCSS);
   const bigPlay=$('#bigPlay'), playBtn=$('#play'), iconPlay=$('#icon-play');
   const back10=$('#back10'), fwd10=$('#fwd10'), seek=$('#seek'), progressBar=$('#progressBar'), bufferedBar=$('#bufferedBar');
   const cur=$('#currentTime'), dur=$('#duration'), muteBtn=$('#mute'), vol=$('#volume'), speed=$('#speed'), fs=$('#fs'), badgeDur=$('#badgeDur');
@@ -591,6 +594,7 @@
 </script>
 </body>
 </html>
+
 
 
 
