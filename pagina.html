@@ -328,6 +328,44 @@
       document.addEventListener('keydown',(e)=>{ if(e.key==='j'||e.key==='J'){togJA.click()} if(e.key==='a'||e.key==='A'){togRO.click()} if(e.key==='e'||e.key==='E'){togES.click()} if(e.key==='g'||e.key==='G'){togFG.click()} });
     })();
   </script>
+  <script>
+(function(){
+  var diag=document.getElementById('diag');
+  function log(m){ diag.innerHTML='['+new Date().toLocaleTimeString()+'] '+m+'<br>'+diag.innerHTML; }
+  var video=document.getElementById('video');
+  var srcEl=document.getElementById('src');
+  function probeSupport(){
+    try{
+      var res = [
+        'H.264 Baseline + AAC: '+(video.canPlayType('video/mp4; codecs="avc1.42E01E, mp4a.40.2"')||'no'),
+        'H.264 Main + AAC: '+(video.canPlayType('video/mp4; codecs="avc1.4D401E, mp4a.40.2"')||'no'),
+        'H.264 High + AAC: '+(video.canPlayType('video/mp4; codecs="avc1.64001F, mp4a.40.2"')||'no')
+      ].join(' · ');
+      log('canPlayType → '+res);
+    }catch(e){ log('canPlayType error: '+e); }
+    try{
+      fetch(srcEl.src, {method:'HEAD'}).then(function(r){
+        log('HEAD '+srcEl.src+' → '+r.status+' '+(r.ok?'OK':'')+' Content-Type='+(r.headers.get('content-type')||'-')+' Length='+(r.headers.get('content-length')||'-'));
+      }).catch(function(e){ log('HEAD error: '+e); });
+    }catch(e){ log('HEAD fetch no disponible: '+e); }
+  }
+  window.addEventListener('load', probeSupport);
+  video.addEventListener('error', function(){
+    var err=video.error; var code=err?err.code:0;
+    var map={1:'ABORTED',2:'NETWORK',3:'DECODE',4:'SRC_NOT_SUPPORTED'};
+    log('ERROR VIDEO code='+code+' ('+(map[code]||'?')+')');
+    probeSupport();
+    if(code===3 || code===4){
+      log('FALLBACK: cambiando a clip MDN (tu MP4 probablemente no es H.264/AAC).');
+      srcEl.src='https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4';
+      document.getElementById('statusSrc').textContent='src: '+srcEl.src;
+      video.load();
+      setTimeout(probeSupport,0);
+    }
+  });
+})();
+  </script>
 </body>
 </html>
+
 
