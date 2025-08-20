@@ -324,18 +324,70 @@
         'ぁ':'a','ぃ':'i','ぅ':'u','ぇ':'e','ぉ':'o','ゃ':'ya','ゅ':'yu','ょ':'yo','っ':'','ー':''
       };
       function hiraToRoma(str){
-        let out=''; for(let i=0;i<str.length;i++){
-          const ch=str[i], next=str[i+1]||'';
-          if(ch==='っ' && next){ const roma = ROMA_MAP[next] || ''; if(roma) out += roma[0]; continue; }
-          const dig=str.slice(i,i+2);
-          if(ROMA_MAP[dig]){ out+=ROMA_MAP[dig]; i++; continue; }
-          out += ROMA_MAP[ch] || ch;
-        }
-        return out;
-      }
-      const norm = s => (s||'').toLowerCase().replace(/[^a-z0-9]/g,'');
+  let out='';
+  for(let i=0;i<str.length;i++){
+    const ch=str[i], next=str[i+1]||'';
+    if(ch==='っ' && next){ const roma = ROMA_MAP[next] || ''; if(roma) out += roma[0]; continue; }
+    const dig=str.slice(i,i+2);
+    if(ROMA_MAP[dig]){ out+=ROMA_MAP[dig]; i++; continue; }
+    out += ROMA_MAP[ch] || ch;
+  }
+  return out;
+}
 
+function stripDiacritics(s){ return (s||'').replace(/[ōŌ]/g,'o').replace(/[ūŪ]/g,'u'); }
+const norm = s => stripDiacritics((s||'').toLowerCase()).replace(/[^a-z0-9]/g,'');
+const squeezeLong = s => s.replace(/ou/g,'o').replace(/oo/g,'o').replace(/uu/g,'u');
+
+function yomiToRoma(surface,yomi){
+  let r=yomi||'';
+  if(!r && /[\u3040-\u309f]/.test(surface)) r=surface;   // si no hay yomi y es hiragana, usar surface
+  let rom = r ? hiraToRoma(r) : '';
+  // partículas con lectura especial:
+  if(surface==='は') rom='wa';
+  if(surface==='へ') rom='e';
+  if(surface==='を') rom='o';
+  return rom;
       /* ======== Render ======== */
+  function alignLine(jaLine, roLine){
+  if(!jaLine || !roLine) return;
+  const hayN = roLine.dataset.norm || '';
+  const hayS = roLine.dataset.normSq || '';
+  let pos = 0;
+
+  jaLine.querySelectorAll('.word-ja').forEach(sp=>{
+    const surface = sp.dataset.word || sp.textContent || '';
+    const yomi = sp.dataset.yomi || '';
+    const rom = (stripDiacritics(yomiToRoma(surface, yomi))||'').toLowerCase().replace(/[^a-z0-9]/g,'');
+    const romS = squeezeLong(rom);
+
+    let idx = -1, useSq=false;
+    if(rom){
+      idx = hayN.indexOf(rom, pos);
+      if(idx<0){ idx = hayS.indexOf(romS, pos); if(idx>=0) useSq=true; }
+      if(idx<0 && pos>0){
+        const start = Math.max(0, pos - 4);
+        idx = hayN.indexOf(rom, start);
+        if(idx<0){ idx = hayS.indexOf(romS, start); if(idx>=0) useSq=true; }
+      }
+    }
+    if(idx>=0){
+      const len = useSq ? romS.length : rom.length;
+      sp.dataset.rs = idx; sp.dataset.re = idx + len;   // rango en la línea RO
+      pos = idx + len;
+    } else { delete sp.dataset.rs; delete sp.dataset.re; }
+  });
+}
+
+function alignAll(){
+  const jaLines = document.querySelectorAll('#cap-ja .line-ja');
+  jaLines.forEach(jaLine=>{
+    const li = jaLine.dataset.li;
+    const roLine = document.querySelector(`#cap-romaji .line-ro[data-li="${li}"]`) || document.querySelector('#cap-romaji .line-ro');
+    if(roLine) alignLine(jaLine, roLine);
+  });
+}
+
       function renderLine(track, el, mode){
         const show=(state.showJA&&mode==='ja')||(state.showRO&&mode==='ro')||(state.showES&&mode==='es');
         if(!show){ el.hidden=true; el.innerHTML=''; return; }
@@ -504,6 +556,7 @@
   </script>
 </body>
 </html>
+
 
 
 
