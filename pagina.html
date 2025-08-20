@@ -62,10 +62,10 @@
     .popover .word{ font-weight:800 } .popover .hint{ color:var(--muted); font-size:12px }
     .popover .meaning{ margin-top:6px }
 
-    /* Badges pequeños (romaji sugerido) */
+    /* Badge cuando no encuentra el match en RO */
     .ro-badge{ margin-left:8px; font-size:12px; padding:2px 6px; border-radius:999px; border:1px solid var(--edge); background:#fff }
 
-    /* Diagnóstico oculto */
+    /* Oculto el panel de diagnóstico */
     .diag{ display:none; }
     .pill{ padding:4px 8px; border-radius:999px; border:1px solid var(--edge); background:#f7f7ff; white-space:nowrap }
     .tools{ display:flex; gap:8px; padding:0 16px 16px; flex-wrap:wrap }
@@ -231,9 +231,8 @@
       togES.addEventListener('click', ()=>{ state.showES=!state.showES; syncToggles(); renderCue(); });
       togFG.addEventListener('click', ()=>{ state.showFG=!state.showFG; syncToggles(); renderCue(); });
 
-      /* ======== Diccionario + partículas ======== */
+      /* ========= Diccionario (ejemplos + partículas) ========= */
       const JA_DICT={
-        // palabras del clip
         "孫悟飯":{yomi:"そんごはん",gloss:"Son Gohan (nombre propio)",pos:"nombre propio"},
         "正しい":{yomi:"ただしい",gloss:"correcto; justo",pos:"adjetivo i"},
         "こと":{yomi:"こと",gloss:"cosa; hecho (nominalizador)",pos:"sust./nominalizador"},
@@ -242,12 +241,12 @@
         "罪":{yomi:"つみ",gloss:"pecado; culpa",pos:"sustantivo"},
         "ではない":{yomi:"ではない",gloss:"no es; no ser (neg. de だ)",pos:"cópula (neg.)"},
         "話し合い":{yomi:"はなしあい",gloss:"diálogo; discusión",pos:"sustantivo"},
-        "など":{yomi:"など",gloss:"etc.; cosas como ~",pos:"partícula (listado)",note:"Se usa tras ejemplos para indicar 'y similares'."},
+        "など":{yomi:"など",gloss:"etc.; cosas como ~",pos:"partícula (listado)",note:"Tras ejemplos para 'y similares'."},
         "通用しない":{yomi:"つうようしない",gloss:"no funciona; no surte efecto",pos:"verbo (neg.)"},
         "相手":{yomi:"あいて",gloss:"oponente; interlocutor",pos:"sustantivo"},
-        "もいるのだ":{yomi:"も いる のだ",gloss:"también hay/existen (enfatiza explicación)",pos:"construcción",note:"Xもいるのだ = 'también hay X' con tono explicativo/afirmativo."},
-        "いるのだ":{yomi:"いる のだ",gloss:"(alguien) está/hay (explicativo)",pos:"construcción"},
-        "いる":{yomi:"いる",gloss:"haber/estar (seres animados)",pos:"verbo de existencia"},
+        "もいるのだ":{yomi:"も いる のだ",gloss:"también hay/existen (explicativo)",pos:"construcción"},
+        "いるのだ":{yomi:"いる のだ",gloss:"está/hay (explicativo)",pos:"construcción"},
+        "いる":{yomi:"いる",gloss:"haber/estar (animados)",pos:"verbo de existencia"},
         "精神":{yomi:"せいしん",gloss:"espíritu; mente",pos:"sustantivo"},
         "光":{yomi:"ひかり",gloss:"luz",pos:"sustantivo"},
         "自由に":{yomi:"じゆうに",gloss:"libremente",pos:"adverbio"},
@@ -257,24 +256,23 @@
         "もう":{yomi:"もう",gloss:"ya; más",pos:"adverbio (tiempo)"},
         "我慢する":{yomi:"がまんする",gloss:"aguantarse / soportar",pos:"verbo compuesto"},
         "ことはない":{yomi:"ことはない",gloss:"no hace falta; no es necesario",pos:"expresión"},
-        // partículas base (tipo + uso)
-        "は":{yomi:"は",gloss:"marcador de tema / contraste",pos:"partícula (tema)",note:"Presenta el tema. Contrasta con が (enfoque del sujeto)."},
-        "が":{yomi:"が",gloss:"marcador de sujeto / énfasis",pos:"partícula (sujeto)",note:"Enfatiza el sujeto o introduce nueva info."},
-        "を":{yomi:"を",gloss:"marcador de objeto directo",pos:"partícula (objeto)"},
-        "に":{yomi:"に",gloss:"tiempo, destino, receptor; existencia (〜にいる/ある)",pos:"partícula (tiempo/lugar/destino)"},
-        "で":{yomi:"で",gloss:"lugar donde ocurre la acción; medio",pos:"partícula (lugar/medio)"},
+        "は":{yomi:"は",gloss:"marcador de tema/contraste",pos:"partícula (tema)"},
+        "が":{yomi:"が",gloss:"marcador de sujeto/énfasis",pos:"partícula (sujeto)"},
+        "を":{yomi:"を",gloss:"objeto directo",pos:"partícula (objeto)"},
+        "に":{yomi:"に",gloss:"tiempo/destino/receptor",pos:"partícula (tiempo/lugar/destino)"},
+        "で":{yomi:"で",gloss:"lugar de la acción; medio",pos:"partícula (lugar/medio)"},
         "へ":{yomi:"へ",gloss:"dirección (hacia)",pos:"partícula (dirección)"},
         "と":{yomi:"と",gloss:"'y' / con; cita",pos:"partícula (conj./cita)"},
-        "も":{yomi:"も",gloss:"también; incluso",pos:"partícula (aditiva)",note:"Añade elementos: Xも = 'también X'. Con いる/ある: 'también hay'."},
+        "も":{yomi:"も",gloss:"también; incluso",pos:"partícula (aditiva)"},
         "の":{yomi:"の",gloss:"posesivo; nominalizador",pos:"partícula (posesiva/nominaliz.)"},
-        "のだ":{yomi:"のだ",gloss:"estructura explicativa (énfasis)",pos:"construcción",note:"Da explicación/razón o enfatiza la afirmación."},
+        "のだ":{yomi:"のだ",gloss:"estructura explicativa",pos:"construcción"},
         "から":{yomi:"から",gloss:"desde; porque",pos:"partícula (origen/causa)"},
         "まで":{yomi:"まで",gloss:"hasta",pos:"partícula (límite)"},
         "より":{yomi:"より",gloss:"que (comparativo)",pos:"partícula (comparación)"}
       };
       const DICT_KEYS=Object.keys(JA_DICT).sort((a,b)=>b.length-a.length);
 
-      // Segmentación JA
+      // Segmentación JA (dict primero + Intl.Segmenter)
       const segJA = (typeof Intl!=='undefined' && Intl.Segmenter)? new Intl.Segmenter('ja',{granularity:'word'}) : null;
       function sliceWithDict(line){
         const out=[]; let i=0;
@@ -309,7 +307,7 @@
         flush(); return out;
       }
 
-      /* ======== Romaji helpers ======== */
+      // Romaji helpers
       const ROMA_MAP = {
         'きゃ':'kya','きゅ':'kyu','きょ':'kyo','しゃ':'sha','しゅ':'shu','しょ':'sho','ちゃ':'cha','ちゅ':'chu','ちょ':'cho',
         'にゃ':'nya','にゅ':'nyu','にょ':'nyo','ひゃ':'hya','ひゅ':'hyu','ひょ':'hyo','みゃ':'mya','みゅ':'myu','みょ':'myo',
@@ -334,6 +332,16 @@
         return out;
       }
       const norm = s => (s||'').toLowerCase().replace(/[^a-z0-9]/g,'');
+      function yomiToRoma(surface,yomi,pos){
+        let r=yomi||'';
+        if(!r && /[\u3040-\u309f]/.test(surface)) r=surface; // kana directo
+        let rom = r ? hiraToRoma(r) : '';
+        // lecturas especiales
+        if(surface==='は' && pos && pos.includes('partícula')) rom='wa';
+        if(surface==='へ' && pos && pos.includes('partícula')) rom='e';
+        if(surface==='を') rom='o';
+        return rom;
+      }
 
       /* ======== Render ======== */
       function renderLine(track, el, mode){
@@ -357,6 +365,7 @@
             const lineWrap = document.createElement('span');
             lineWrap.className='line-ja';
             lineWrap.dataset.text=lineText;
+            lineWrap.dataset.li=li;
 
             tokens.forEach((tok,idx)=>{
               const sp=document.createElement('span');
@@ -367,6 +376,7 @@
               sp.dataset.start=tok.start;
               sp.dataset.end=tok.end;
               sp.dataset.idx=idx;
+              sp.dataset.li=li;
               if(tok.dict){
                 sp.dataset.dict='1';
                 sp.dataset.yomi=tok.dict.yomi;
@@ -378,18 +388,27 @@
             });
             el.appendChild(lineWrap);
           } else if(mode==='ro'){
+            const lineWrap = document.createElement('span');
+            lineWrap.className='line-ro';
+            lineWrap.dataset.li=li;
+            let normStr=''; let normIdx=0;
             const parts = lineText.split(/(\s+|[.,!?¡¿…:;()\[\]'"-])/).filter(Boolean);
             parts.forEach(tok=>{
               if(/\s+|[.,!?¡¿…:;()\[\]'"-]/.test(tok)){
-                el.appendChild(document.createTextNode(tok));
+                lineWrap.appendChild(document.createTextNode(tok));
               }else{
                 const sp=document.createElement('span');
                 sp.className='word-ro';
                 sp.textContent=tok;
-                sp.dataset.norm = norm(tok);
-                el.appendChild(sp);
+                const n=norm(tok);
+                sp.dataset.ns=normIdx;
+                sp.dataset.ne=normIdx+n.length;
+                normIdx+=n.length; normStr+=n;
+                lineWrap.appendChild(sp);
               }
             });
+            lineWrap.dataset.norm = normStr;
+            el.appendChild(lineWrap);
           } else {
             el.appendChild(document.createTextNode(lineText));
           }
@@ -404,7 +423,7 @@
       video.addEventListener('ratechange', renderCue);
       window.addEventListener('load', renderCue);
 
-      /* ======== Popover SOLO JA + RO highlight ======== */
+      /* ======== Popover SOLO JA + RO highlight mejorado ======== */
       const pop=$('#popover'), pvWord=$('#pv-word'), pvRead=$('#pv-read'), pvMeaning=$('#pv-meaning'), pvPos=$('#pv-pos'), pvNote=$('#pv-note');
 
       function longestDictAt(line, pos){
@@ -424,35 +443,36 @@
         if(roBadgeEl && roBadgeEl.parentNode) roBadgeEl.parentNode.removeChild(roBadgeEl);
         roBadgeEl=null;
       }
-      function highlightInRO(romaji){
+      function highlightInRO(romaji, li){
         clearROHighlight();
         if(!state.showRO || !romaji) return;
-        const targetNorm = norm(romaji);
-        let best=null, bestScore=0;
-        capRO.querySelectorAll('.word-ro').forEach(sp=>{
-          const n=sp.dataset.norm||'';
-          if(!n) return;
-          if(n===targetNorm){ best=sp; bestScore=2; }
-          else if(bestScore<2 && (n.includes(targetNorm)||targetNorm.includes(n))){ best=sp; bestScore=1; }
-        });
-        if(best){ best.classList.add('hl'); }
-        else{
+        const roLine = capRO.querySelector(`.line-ro[data-li="${li}"]`) || capRO.querySelector('.line-ro');
+        if(!roLine) return;
+        const target = norm(romaji);
+        if(!target) return;
+        const haystack = roLine.dataset.norm || '';
+        const idx = haystack.indexOf(target);
+        if(idx>=0){
+          const end = idx + target.length;
+          roLine.querySelectorAll('.word-ro').forEach(sp=>{
+            const ns=+sp.dataset.ns, ne=+sp.dataset.ne;
+            if(ns<end && ne>idx) sp.classList.add('hl');
+          });
+        } else {
           roBadgeEl=document.createElement('span');
           roBadgeEl.className='ro-badge';
           roBadgeEl.textContent=romaji;
-          capRO.appendChild(roBadgeEl);
+          roLine.appendChild(roBadgeEl);
         }
       }
 
       document.addEventListener('mousemove',(e)=>{
         if(!state.showJA || !capJA.contains(e.target)) return;
         const span=e.target.closest('.word-ja'); if(!span) { clearROHighlight(); return; }
-        let reading = span.dataset.yomi || '';
-        const txt=span.textContent||'';
-        if(!reading && /[\u3040-\u309f]/.test(txt)){ reading=txt; }
-        if(reading){ highlightInRO(hiraToRoma(reading)); } else { clearROHighlight(); }
+        const li = Number(span.dataset.li||0);
+        const rom = yomiToRoma(span.dataset.word||'', span.dataset.yomi||'', span.dataset.pos||'');
+        if(rom){ highlightInRO(rom, li); } else { clearROHighlight(); }
       });
-
       document.addEventListener('mouseleave', ()=> clearROHighlight(), true);
 
       document.addEventListener('click',(e)=>{
@@ -469,11 +489,11 @@
         let entry = (span.dataset.dict==='1') ? {
           yomi:span.dataset.yomi,gloss:span.dataset.gloss,pos:span.dataset.pos,note:span.dataset.note
         } : null;
-
         if(!entry){
           const best=longestDictAt(lineText, pos);
           if(best){ surface=best.text; entry={yomi:best.entry.yomi,gloss:best.entry.gloss,pos:best.entry.pos,note:best.entry.note}; }
         }
+        const rom = yomiToRoma(surface, entry?.yomi||'', entry?.pos||'');
 
         pvWord.textContent = surface;
         pvRead.textContent = 'Lectura: ' + (entry?.yomi || '—');
@@ -486,7 +506,7 @@
         pop.style.left=(Math.min(rect.width-10, Math.max(10, e.clientX - rect.left + 8)))+'px';
         pop.style.top =(Math.min(rect.height-10, Math.max(10, e.clientY - rect.top + 8)) - 10)+'px';
 
-        if(entry && entry.yomi) highlightInRO(hiraToRoma(entry.yomi));
+        if(rom) highlightInRO(rom, Number(span.dataset.li||0));
       }, true);
 
       // Herramientas
@@ -504,4 +524,3 @@
   </script>
 </body>
 </html>
-
