@@ -163,9 +163,12 @@
 (function(){
   const $ = (s)=>document.querySelector(s);
   const player=$('#player'), video=$('#video'), srcEl=$('#src');
-    const roClickCSS = document.createElement('style');
+
+  /* habilitar click en rōmaji (sobrescribe el CSS de arriba) */
+  const roClickCSS = document.createElement('style');
   roClickCSS.textContent = '.track-romaji .word-ro{pointer-events:auto;cursor:pointer}';
   document.head.appendChild(roClickCSS);
+
   const bigPlay=$('#bigPlay'), playBtn=$('#play'), iconPlay=$('#icon-play');
   const back10=$('#back10'), fwd10=$('#fwd10'), seek=$('#seek'), progressBar=$('#progressBar'), bufferedBar=$('#bufferedBar');
   const cur=$('#currentTime'), dur=$('#duration'), muteBtn=$('#mute'), vol=$('#volume'), speed=$('#speed'), fs=$('#fs'), badgeDur=$('#badgeDur');
@@ -243,7 +246,6 @@
     "ではない":{yomi:"ではない",gloss:"no es; no ser (neg. de だ)",ro:"de wa nai"},
     "話し合い":{yomi:"はなしあい",gloss:"diálogo; discusión",ro:"hanashiai"},
     "など":{yomi:"など",gloss:"etc.; cosas como ~",ro:"nado"},
-    /* 🔧 importante: macrones en el ro para matchear “Tsūyō shinai” */
     "通用しない":{yomi:"つうようしない",gloss:"no funciona; no surte efecto",ro:"tsūyō shinai"},
     "相手":{yomi:"あいて",gloss:"oponente; interlocutor",ro:"aite"},
     "もいるのだ":{yomi:"もいるのだ",gloss:"también hay/existen (explicativo)",ro:"mo iru no da"},
@@ -275,7 +277,7 @@
   };
   const DICT_KEYS=Object.keys(JA_DICT).sort((a,b)=>b.length-a.length);
 
-  // Segmentación JA
+  // Segmentación JA (diccionario primero, luego Segmenter)
   const segJA = (typeof Intl!=='undefined' && Intl.Segmenter)? new Intl.Segmenter('ja',{granularity:'word'}) : null;
   function sliceWithDict(line){
     const out=[]; let i=0;
@@ -336,22 +338,14 @@
     return out;
   }
 
-  // normalizador: macrones precompuestos y combinados → secuencias (ō→ou, ū→uu, etc.)
+  // normalizador (macrones → secuencias)
   const norm = (s)=>{
     if(!s) return '';
-    // precompuestos
     const macPre = {'Ā':'aa','ā':'aa','Ī':'ii','ī':'ii','Ū':'uu','ū':'uu','Ē':'ee','ē':'ee','Ō':'ou','ō':'ou'};
-    s = s.replace(/[ĀāĪīŪūĒēŌō]/g, ch => macPre[ch] || ch);
-    // combinados (vocal + U+0304)
-    s = s.replace(/a\u0304/gi,'aa')
-         .replace(/i\u0304/gi,'ii')
-         .replace(/u\u0304/gi,'uu')
-         .replace(/e\u0304/gi,'ee')
-         .replace(/o\u0304/gi,'ou');
-    // limpia diacríticos restantes y no-alfanum
-    return s.toLowerCase()
-            .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
-            .replace(/[^a-z0-9]/g,'');
+    s = s.replace(/[ĀāĪīŪūĒēŌō]/g, ch => macPre[ch] || ch)
+         .replace(/a\u0304/gi,'aa').replace(/i\u0304/gi,'ii')
+         .replace(/u\u0304/gi,'uu').replace(/e\u0304/gi,'ee').replace(/o\u0304/gi,'ou');
+    return s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]/g,'');
   };
 
   /* ======== Render ======== */
@@ -421,7 +415,7 @@
   video.addEventListener('ratechange', renderCue);
   window.addEventListener('load', renderCue);
 
-  /* ======== Popover + highlight RO ======== */
+  /* ======== Popover + highlight ======== */
   const pop=$('#popover'), pvWord=$('#pv-word'), pvRead=$('#pv-read'), pvMeaning=$('#pv-meaning');
 
   function longestDictAt(line, pos){
@@ -436,13 +430,16 @@
   }
 
   let roBadgeEl=null;
+
+  // helpers de highlight (solo UNA vez)
+  function clearJAHighlight(){ capJA.querySelectorAll('.hl').forEach(el=>el.classList.remove('hl')); }
   function clearROHighlight(){
     capRO.querySelectorAll('.hl').forEach(el=>el.classList.remove('hl'));
     if(roBadgeEl && roBadgeEl.parentNode) roBadgeEl.parentNode.removeChild(roBadgeEl);
     roBadgeEl=null;
   }
 
-  // Busca ventanas contiguas EXACTAS (multi-palabra)
+  // resaltar en RO un romaji (con n-gramas contiguos)
   function highlightInRO(romaji){
     clearROHighlight();
     if(!state.showRO || !romaji) return;
@@ -450,6 +447,7 @@
     const toks = Array.from(capRO.querySelectorAll('.word-ro'));
     const norms = toks.map(t=>t.dataset.norm||'');
 
+    // ventana contigua exacta
     for(let i=0;i<norms.length;i++){
       let cat='';
       for(let j=i;j<norms.length;j++){
@@ -461,117 +459,111 @@
         if(cat.length >= target.length) break;
       }
     }
+    // exacto simple
     for(let i=0;i<norms.length;i++){ if(norms[i]===target){ toks[i].classList.add('hl'); return; } }
+    // inclusión (fallback)
     let pick=-1, bestLen=0;
     for(let i=0;i<norms.length;i++){
       const n=norms[i];
       if(n.includes(target) || target.includes(n)){ if(n.length>bestLen){ pick=i; bestLen=n.length; } }
     }
     if(pick!==-1){ toks[pick].classList.add('hl'); return; }
+    // sin match: badge
     roBadgeEl=document.createElement('span'); roBadgeEl.className='ro-badge'; roBadgeEl.textContent=romaji; capRO.appendChild(roBadgeEl);
   }
 
-  // Hover en JA → resalta RO
-  // --- HOVER en RŌMAJI → resalta la parte correspondiente en JAPO ---
-function clearJAHighlight(){ capJA.querySelectorAll('.hl').forEach(el=>el.classList.remove('hl')); }
+  // HOVER en JAPO: borde violeta + sincroniza con RO
+  document.addEventListener('mousemove',(e)=>{
+    if(!state.showJA) return;
+    if(!capJA.contains(e.target)){ clearJAHighlight(); return; }
 
-document.addEventListener('mousemove', (e)=>{
-  if(!state.showRO || !state.showJA) return;               // necesitamos ver RO y JA
-  if(!capRO.contains(e.target)) { clearJAHighlight(); return; }
+    const jaSpan = e.target.closest('.word-ja');
+    if(!jaSpan){ clearJAHighlight(); return; }
 
-  const roSpan = e.target.closest('.word-ro');
-  if(!roSpan){ clearJAHighlight(); return; }
+    clearJAHighlight();
+    jaSpan.classList.add('hl');
 
-  const toks = Array.from(capRO.querySelectorAll('.word-ro'));
-  const idx  = toks.indexOf(roSpan);
-  const get  = i => (i>=0 && i<toks.length)? toks[i].textContent.trim() : null;
+    let reading = jaSpan.dataset.yomi || '';
+    let romaji  = jaSpan.dataset.roma || '';
+    const txt   = jaSpan.textContent || '';
+    if(!reading && /[\u3040-\u309f]/.test(txt)) reading = txt;
+    if(!romaji && reading) romaji = hiraToRoma(reading);
+    if(romaji) highlightInRO(romaji); else clearROHighlight();
+  });
 
-  // Generamos n-gramas contiguos centrados en el hover (4→1) p.ej. "tsuuyou shinai"
-  let match=null, entry=null, key=null, win=null;
-  outer:
-  for (let w=4; w>=1; w--) {
-    for (let start=idx-(w-1); start<=idx; start++) {
-      if (start<0) continue;
-      const parts=[];
-      for (let k=0;k<w;k++){ const t=get(start+k); if(!t){ parts.length=0; break; } parts.push(t); }
-      if(!parts.length) continue;
+  // HOVER en RO: borde violeta + sincroniza con JA
+  document.addEventListener('mousemove', (e)=>{
+    if(!state.showRO) return;
 
-      const cand = parts.join(' ');
-      for (const k of DICT_KEYS) {
-        const e = JA_DICT[k]; if(!e || !e.ro) continue;
-        if (norm(e.ro) === norm(cand)) { match=cand; entry=e; key=k; win={start, end:start+w-1}; break outer; }
+    if(!capRO.contains(e.target)){
+      clearROHighlight();
+      if(state.showJA) clearJAHighlight();
+      return;
+    }
+
+    const roSpan = e.target.closest('.word-ro');
+    if(!roSpan){
+      clearROHighlight();
+      if(state.showJA) clearJAHighlight();
+      return;
+    }
+
+    // marca el token bajo el cursor
+    clearROHighlight();
+    roSpan.classList.add('hl');
+
+    // buscar n-grama que matchee una clave del diccionario por su romaji
+    const toks = Array.from(capRO.querySelectorAll('.word-ro'));
+    const idx  = toks.indexOf(roSpan);
+    const get  = i => (i>=0 && i<toks.length)? toks[i].textContent.trim() : null;
+
+    let match=null, entry=null, key=null, win=null;
+    outer:
+    for (let w=4; w>=1; w--) {
+      for (let start=idx-(w-1); start<=idx; start++) {
+        if (start<0) continue;
+        const parts=[];
+        for (let k=0;k<w;k++){ const t=get(start+k); if(!t){ parts.length=0; break; } parts.push(t); }
+        if(!parts.length) continue;
+        const cand = parts.join(' ');
+        for (const k of DICT_KEYS) {
+          const e = JA_DICT[k]; if(!e || !e.ro) continue;
+          if (norm(e.ro) === norm(cand)) { match=cand; entry=e; key=k; win={start, end:start+w-1}; break outer; }
+        }
       }
     }
-  }
 
-  // Limpiamos y aplicamos highlight si hubo match
-  clearROHighlight();
-  clearJAHighlight();
-  if(!entry) return;
+    if(match){
+      for (let i=win.start; i<=win.end; i++) toks[i].classList.add('hl');
 
-  // 1) Resalta todos los tokens del n-grama en RO
-  for (let i=win.start; i<=win.end; i++) toks[i].classList.add('hl');
-
-  // 2) Resalta en JA
-  //   a) Preferencia: spans cuyo dataset.word coincide exactamente con la clave del diccionario (p.ej. "通用しない", "のが")
-  let found=false;
-  const jaSpans = Array.from(capJA.querySelectorAll('.word-ja'));
-  jaSpans.forEach(sp=>{
-    if (sp.dataset.word === key) { sp.classList.add('hl'); found=true; }
-  });
-
-  //   b) Fallback: localizar la subcadena en el texto de la línea y marcar los spans que se solapan
-  if(!found){
-    const wrap = capJA.querySelector('.line-ja');
-    const line = wrap ? (wrap.dataset.text || '') : '';
-    const pos  = line.indexOf(key);
-    if (pos >= 0) {
-      jaSpans.forEach(sp=>{
-        const s = Number(sp.dataset.start)||0, en = Number(sp.dataset.end)||0;
-        if (s < pos + key.length && en > pos) sp.classList.add('hl');
-      });
+      if(state.showJA){
+        clearJAHighlight();
+        // a) por surface exacta
+        let found=false;
+        capJA.querySelectorAll('.word-ja').forEach(sp=>{
+          if(sp.dataset.word===key){ sp.classList.add('hl'); found=true; }
+        });
+        // b) fallback por solapamiento en la línea
+        if(!found){
+          const wrap=capJA.querySelector('.line-ja');
+          const line=wrap?(wrap.dataset.text||''):'';
+          const pos=line.indexOf(key);
+          if(pos>=0){
+            capJA.querySelectorAll('.word-ja').forEach(sp=>{
+              const s=Number(sp.dataset.start)||0, en=Number(sp.dataset.end)||0;
+              if(s<pos+key.length && en>pos) sp.classList.add('hl');
+            });
+          }
+        }
+      }
     }
-  }
-});
-
-  document.addEventListener('mousemove',(e)=>{
-   function clearJAHighlight(){
-  capJA.querySelectorAll('.hl').forEach(el=>el.classList.remove('hl'));
-}
-
-document.addEventListener('mousemove',(e)=>{
-  if(!state.showJA) return;
-  if(!capJA.contains(e.target)){ clearJAHighlight(); clearROHighlight(); return; }
-
-  const span = e.target.closest('.word-ja');
-  if(!span){ clearJAHighlight(); clearROHighlight(); return; }
-
-  // aro violeta en JA
-  clearJAHighlight();
-  span.classList.add('hl');
-
-  // sincroniza con RO (igual que antes)
-  let reading = span.dataset.yomi || '';
-  let romaji  = span.dataset.roma || '';
-  const txt   = span.textContent || '';
-  if(!reading && /[\u3040-\u309f]/.test(txt)) reading = txt;
-  if(!romaji && reading) romaji = hiraToRoma(reading);
-  if(romaji) highlightInRO(romaji); else clearROHighlight();
-});
-
-document.addEventListener('mouseleave', ()=>{
-  clearJAHighlight();
-  clearROHighlight();
-}, true);
-    const span=e.target.closest('.word-ja'); if(!span) { clearROHighlight(); return; }
-    let reading = span.dataset.yomi || '';
-    let romaji  = span.dataset.roma || '';
-    const txt = span.textContent || '';
-    if(!reading && /[\u3040-\u309f]/.test(txt)){ reading = txt; }
-    if(!romaji && reading){ romaji = hiraToRoma(reading); }
-    if(romaji){ highlightInRO(romaji); } else { clearROHighlight(); }
   });
-  document.addEventListener('mouseleave', ()=> clearROHighlight(), true);
+
+  // Limpieza al salir
+  document.addEventListener('mouseleave', ()=>{
+    clearJAHighlight();
+    clearROHighlight();
+  }, true);
 
   // Click JA: popover + sincroniza RO
   document.addEventListener('click',(e)=>{
@@ -605,7 +597,7 @@ document.addEventListener('mouseleave', ()=>{
     if(romaOut) highlightInRO(romaOut);
   }, true);
 
-  /* Click en ROMAJI: popover con significado/uso (igual que en JA) */
+  // Click RO: popover con significado/uso
   document.addEventListener('click',(e)=>{
     if(!state.showRO) return;
     if(!capRO.contains(e.target)) return;
@@ -615,7 +607,7 @@ document.addEventListener('mouseleave', ()=>{
     const idx  = toks.indexOf(roSpan);
     const get  = i => (i>=0 && i<toks.length)? toks[i].textContent.trim() : null;
 
-    // Candidatos contiguos hasta 4 tokens
+    // candidatos contiguos
     const candidates = [];
     for (let w=4; w>=1; w--) {
       for (let start=idx-(w-1); start<=idx; start++) {
@@ -626,13 +618,13 @@ document.addEventListener('mouseleave', ()=>{
       }
     }
 
-    // Match con ro del diccionario
-    let match=null, entry=null, key=null, candText='';
+    // match por romaji del diccionario
+    let match=null, entry=null, key=null;
     const keysWithRO = DICT_KEYS.filter(k => JA_DICT[k]?.ro);
     for (const cand of candidates) {
       const cn = norm(cand.text);
       for (const k of keysWithRO) {
-        if (norm(JA_DICT[k].ro) === cn) { match=cand; entry=JA_DICT[k]; key=k; candText=cand.text; break; }
+        if (norm(JA_DICT[k].ro) === cn) { match=cand; entry=JA_DICT[k]; key=k; break; }
       }
       if (match) break;
     }
@@ -647,15 +639,14 @@ document.addEventListener('mouseleave', ()=>{
     pop.style.left=(Math.min(rect.width-10, Math.max(10, e.clientX - rect.left + 8)))+'px';
     pop.style.top =(Math.min(rect.height-10, Math.max(10, e.clientY - rect.top + 8)) - 10)+'px';
 
-    // Highlight n-grama en RO
+    // highlight n-grama en RO
     clearROHighlight();
     for (let i = match.start; i <= match.end; i++) toks[i].classList.add('hl');
 
-    // Si JA visible, también resaltá la parte correspondiente por superposición de índices
+    // y reflejo en JA
     if (state.showJA) {
-      capJA.querySelectorAll('.hl').forEach(el=>el.classList.remove('hl'));
+      clearJAHighlight();
       const spans = Array.from(capJA.querySelectorAll('.word-ja'));
-      // Intento 1: buscar la llave exacta en el texto de línea
       const wrap = capJA.querySelector('.line-ja');
       const lineText = wrap ? (wrap.dataset.text || '') : '';
       let jStart = lineText.indexOf(key);
@@ -665,7 +656,6 @@ document.addEventListener('mouseleave', ()=>{
           if (s < jStart + key.length && e2 > jStart) sp.classList.add('hl');
         });
       } else {
-        // Intento 2: si la key no aparece literal (p. ej., con furigana/kanji alterno), resalta por lectura
         const byRo = norm(entry.ro);
         spans.forEach(sp=>{
           const r = sp.dataset.roma || (sp.dataset.yomi ? hiraToRoma(sp.dataset.yomi) : '');
@@ -683,9 +673,6 @@ document.addEventListener('mouseleave', ()=>{
 </script>
 </body>
 </html>
-
-
-
 
 
 
