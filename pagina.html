@@ -1,11 +1,26 @@
-<!DOCTYPE html>
+<!DOCTYPE html> 
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
   <title>Reproductor DBZ — Pages</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
-    :root{ --bg:#f6f7fb; --ink:#2d2a32; --muted:#6b6a73; --panel:#ffffff; --edge:#e9e8f2; --accent:#b59bff; }
+    :root{
+      --bg:#f6f7fb; 
+      --ink:#2d2a32; 
+      --muted:#6b6a73; 
+      --panel:#ffffff; 
+      --edge:#e9e8f2; 
+      --accent:#b59bff;
+
+      /* 🎨 Colores agregados (no sustituyen a los originales) */
+      --ink-new: #111827;
+      --brand: #5b21b6;
+      --muted-new: #6b7280;
+      --grad1: #f0abfc;
+      --grad2: #93c5fd;
+      --grad3: #a7f3d0;
+    }
     *{box-sizing:border-box} html,body{height:100%}
     body{
       margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial; color:var(--ink);
@@ -51,6 +66,7 @@
     .track-ja{ background:rgba(255,255,255,.92) }
     .track-romaji{ background:rgba(255,245,232,.95) }
     .track-es{ background:rgba(236,253,245,.95) }
+    .track-en{ background:rgba(230,244,255,.95) }
 
     .word-ja{ cursor:pointer; padding:0 2px; border-radius:6px }
     .word-ja:hover{ background:rgba(0,0,0,.06) }
@@ -85,6 +101,7 @@
         <track id="trk-ja" label="日本語"   kind="subtitles" srclang="ja"      src="subs-ja.vtt" default />
         <track id="trk-ro" label="Rōmaji"  kind="subtitles" srclang="ja-Latn" src="subs-ro.vtt" />
         <track id="trk-es" label="Español" kind="subtitles" srclang="es"      src="subs-es.vtt" />
+        <track id="trk-en" label="English" kind="subtitles" srclang="en"      src="subs-en.vtt" />
         Tu navegador no soporta la etiqueta <code>video</code>.
       </video>
 
@@ -94,6 +111,7 @@
         <div class="cap-line track-ja"     id="cap-ja" hidden></div>
         <div class="cap-line track-romaji" id="cap-romaji" hidden></div>
         <div class="cap-line track-es"     id="cap-es" hidden></div>
+        <div class="cap-line track-en"     id="cap-en" hidden></div>
       </div>
 
       <div class="popover" id="popover">
@@ -135,6 +153,7 @@
         <button class="btn" id="tog-ja"      aria-pressed="true"  title="Alternar Japonés">JA</button>
         <button class="btn" id="tog-romaji"  aria-pressed="false" title="Alternar Rōmaji">RO</button>
         <button class="btn" id="tog-es"      aria-pressed="false" title="Alternar Español">ES</button>
+        <button class="btn" id="tog-en"      aria-pressed="false" title="Alternar Inglés">EN</button>
         <button class="btn" id="tog-fg"      aria-pressed="false" title="Furigana en JA">FG</button>
         <button class="btn" id="fs"          title="Pantalla completa">⤢</button>
       </div>
@@ -147,6 +166,7 @@
       <span class="pill" id="pillJA">JA: —</span>
       <span class="pill" id="pillRO">RO: —</span>
       <span class="pill" id="pillES">ES: —</span>
+      <span class="pill" id="pillEN">EN: —</span>
     </div>
     <div class="diag" id="diag"></div>
 
@@ -206,25 +226,30 @@
   const tracks={ ja:trkJA?.track || null, ro:trkRO?.track || null, es:trkES?.track || null, en:trkEN?.track || null };
   Object.values(tracks).forEach(t=>{ if(t){ try{ t.mode='hidden'; }catch(_){} } });
 
+  function safeCueCount(t){
+    try{ return t && t.cues ? t.cues.length : 0; }catch(_){ return 0; }
+  }
+
   function armTrack(el, name, pill){
     if(!el){ pill.textContent = name.toUpperCase()+': —'; return; }
     const t = el.track;
-    function ok(){ pill.textContent = `${name.toUpperCase()}: ok (${t.cues?t.cues.length:0})`; renderCue(); }
+    function ok(){ pill.textContent = `${name.toUpperCase()}: ok (${safeCueCount(t)})`; try{ renderCue(); }catch(_){} }
     function err(){ pill.textContent = `${name.toUpperCase()}: error`; }
-    if (el.readyState === 2) ok(); else { el.addEventListener('load', ok, {once:true}); el.addEventListener('error', err, {once:true}); }
+    if (el.readyState === 2) { try{ ok(); }catch(_){ err(); } }
+    else { el.addEventListener('load', ok, {once:true}); el.addEventListener('error', err, {once:true}); }
   }
   armTrack(trkJA,'ja',pillJA); armTrack(trkRO,'ro',pillRO); armTrack(trkES,'es',pillES); armTrack(trkEN,'en',pillEN);
 
   const state={ showJA:true, showRO:false, showES:false, showEN:false, showFG:false };
-  const setToggle=(btn,on)=>btn.setAttribute('aria-pressed', on);
+  const setToggle=(btn,on)=>{ if(btn) btn.setAttribute('aria-pressed', on); };
   function syncToggles(){ setToggle(togJA,state.showJA); setToggle(togRO,state.showRO); setToggle(togES,state.showES); setToggle(togEN,state.showEN); setToggle(togFG,state.showFG); }
-  function rerenderAndClean(){ renderCue(); clearJAHighlight(); clearROHighlight(); }
+  function rerenderAndClean(){ try{ renderCue(); }catch(_){} clearJAHighlight(); clearROHighlight(); }
   syncToggles();
   togJA.addEventListener('click', ()=>{ state.showJA=!state.showJA; syncToggles(); rerenderAndClean(); });
   togRO.addEventListener('click', ()=>{ state.showRO=!state.showRO; syncToggles(); rerenderAndClean(); });
   togES.addEventListener('click', ()=>{ state.showES=!state.showES; syncToggles(); rerenderAndClean(); });
   togEN.addEventListener('click', ()=>{ state.showEN=!state.showEN; syncToggles(); rerenderAndClean(); });
-  togFG.addEventListener('click', ()=>{ state.showFG=!state.showFG; syncToggles(); renderCue(); });
+  togFG.addEventListener('click', ()=>{ state.showFG=!state.showFG; syncToggles(); try{ renderCue(); }catch(_){} });
 
   /* ======== Diccionario ======== */
   const JA_DICT={
@@ -245,14 +270,13 @@
     "光":{yomi:"ひかり",gloss:"luz",ro:"hikari"},
     "まま":{yomi:"まま",gloss:"tal cual; manteniendo el estado",ro:"mama",note:"X のまま = 'tal como X'."},
     "自由に":{yomi:"じゆうに",gloss:"libremente",ro:"jiyū ni"},
-    "解放してやれ":{yomi:"かいほうしてやれ",gloss:"libéralo",ro:"kaihō shite yare"},
+    "解放してやれ":{yomi:"かいほうしてやれ",gloss:"libéralo",ro:"kaihō shて yare"},
     "気持ち":{yomi:"きもち",gloss:"sentimiento",ro:"kimochi"},
     "分かる":{yomi:"わかる",gloss:"entender",ro:"wakaru"},
     "もう":{yomi:"もう",gloss:"ya; más",ro:"mō"},
     "我慢する":{yomi:"がまんする",gloss:"aguantarse",ro:"gaman suru"},
     "ことはない":{yomi:"ことはない",gloss:"no hace falta",ro:"koto wa nai"},
     "のが":{yomi:"のが",gloss:"(nominalizador+が)",ro:"no ga"},
-    // partículas
     "を":{yomi:"を",gloss:"objeto directo",ro:"wo"},
     "は":{yomi:"は",gloss:"tema/contraste",ro:"wa"},
     "が":{yomi:"が",gloss:"sujeto/énfasis",ro:"ga"},
@@ -268,7 +292,6 @@
   };
   const DICT_KEYS=Object.keys(JA_DICT).sort((a,b)=>b.length-a.length);
 
-  // Segmentación JA priorizando diccionario
   const segJA = (typeof Intl!=='undefined' && Intl.Segmenter)? new Intl.Segmenter('ja',{granularity:'word'}) : null;
   function sliceWithDict(line){
     const out=[]; let i=0;
@@ -303,21 +326,14 @@
     flush(); return out;
   }
 
-  /* ======== Romaji helpers ======== */
-  const ROMA_MAP = {
-    'きゃ':'kya','きゅ':'kyu','きょ':'kyo','しゃ':'sha','しゅ':'shu','しょ':'sho','ちゃ':'cha','ちゅ':'chu','ちょ':'cho',
+  const ROMA_MAP = { 'きゃ':'kya','きゅ':'kyu','きょ':'kyo','しゃ':'sha','しゅ':'shu','しょ':'sho','ちゃ':'cha','ちゅ':'chu','ちょ':'cho',
     'にゃ':'nya','にゅ':'nyu','にょ':'nyo','ひゃ':'hya','ひゅ':'hyu','ひょ':'hyo','みゃ':'mya','みゅ':'myu','みょ':'myo',
     'りゃ':'rya','りゅ':'ryu','りょ':'ryo','ぎゃ':'gya','ぎゅ':'gyu','ぎょ':'gyo','じゃ':'ja','じゅ':'ju','じょ':'jo',
-    'びゃ':'bya','びゅ':'byu','びょ':'byo','ぴゃ':'pya','ぴゅ':'pyu','ぴょ':'pyo',
-    'あ':'a','い':'i','う':'u','え':'e','お':'o','か':'ka','き':'ki','く':'ku','け':'ke','こ':'ko',
-    'さ':'sa','し':'shi','す':'su','せ':'se','そ':'so','た':'ta','ち':'chi','つ':'tsu','て':'te','と':'to',
-    'な':'na','に':'ni','ぬ':'nu','ね':'ne','の':'no','は':'ha','ひ':'hi','ふ':'fu','へ':'he','ほ':'ho',
-    'ま':'ma','み':'mi','む':'mu','め':'me','も':'mo','や':'ya','ゆ':'yu','よ':'yo','ら':'ra','り':'ri','る':'ru','れ':'re','ろ':'ro',
-    'わ':'wa','を':'wo','ん':'n',
-    'が':'ga','ぎ':'gi','ぐ':'gu','げ':'ge','ご':'go','ざ':'za','じ':'ji','ず':'zu','ぜ':'ze','ぞ':'zo',
-    'だ':'da','ぢ':'ji','づ':'zu','で':'de','ど':'do','ば':'ba','び':'bi','ぶ':'bu','べ':'be','ぼ':'bo','ぱ':'pa','ぴ':'pi','ぷ':'pu','ぺ':'pe','ぽ':'po',
-    'ぁ':'a','ぃ':'i','ぅ':'u','ぇ':'e','ぉ':'o','ゃ':'ya','ゅ':'yu','ょ':'yo','っ':'','ー':''
-  };
+    'びゃ':'bya','びゅ':'byu','びょ':'byo','ぴゃ':'pya','ぴゅ':'pyu','ぴょ':'pyo','あ':'a','い':'i','う':'u','え':'e','お':'o','か':'ka','き':'ki','く':'ku','け':'ke','こ':'ko',
+    'さ':'sa','し':'shi','す':'su','せ':'se','そ':'so','た':'ta','ち':'chi','つ':'tsu','て':'te','と':'to','な':'na','に':'ni','ぬ':'nu','ね':'ne','の':'no','は':'ha','ひ':'hi','ふ':'fu','へ':'he','ほ':'ho',
+    'ま':'ma','み':'mi','む':'mu','め':'me','も':'mo','や':'ya','ゆ':'yu','よ':'yo','ら':'ra','り':'ri','る':'ru','れ':'re','ろ':'ro','わ':'wa','を':'wo','ん':'n',
+    'が':'ga','ぎ':'gi','ぐ':'gu','げ':'ge','ご':'go','ざ':'za','じ':'ji','ず':'zu','ぜ':'ze','ぞ':'zo','だ':'da','ぢ':'ji','づ':'zu','で':'de','ど':'do','ば':'ba','び':'bi','ぶ':'bu','べ':'be','ぼ':'bo','ぱ':'pa','ぴ':'pi','ぷ':'pu','ぺ':'pe','ぽ':'po',
+    'ぁ':'a','ぃ':'i','ぅ':'u','ぇ':'e','ぉ':'o','ゃ':'ya','ゅ':'yu','ょ':'yo','っ':'','ー':'' };
   function hiraToRoma(str){
     let out=''; for(let i=0;i<str.length;i++){
       const ch=str[i], next=str[i+1]||'';
@@ -329,7 +345,6 @@
     return out;
   }
 
-  // normalizador macrones → secuencias y limpieza
   const norm = (s)=>{
     if(!s) return '';
     const macPre = {'Ā':'aa','ā':'aa','Ī':'ii','ī':'ii','Ū':'uu','ū':'uu','Ē':'ee','ē':'ee','Ō':'ou','ō':'ou'};
@@ -339,16 +354,20 @@
     return s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]/g,'');
   };
 
-  /* ======== Render ======== */
   function renderLine(track, el, mode){
     const show=(state.showJA&&mode==='ja')||(state.showRO&&mode==='ro')||(state.showES&&mode==='es')||(state.showEN&&mode==='en');
     if(!show){ el.hidden=true; el.innerHTML=''; return; }
 
     let cue=null;
-    if(track?.activeCues?.length) cue=track.activeCues[0];
-    else if(track?.cues?.length){
-      const t=video.currentTime;
-      for(let i=0;i<track.cues.length;i++){ const c=track.cues[i]; if(t>=c.startTime && t<=c.endTime){ cue=c; break; } }
+    try{
+      if(track?.activeCues?.length) cue=track.activeCues[0];
+      else if(track?.cues?.length){
+        const t=video.currentTime;
+        for(let i=0;i<track.cues.length;i++){ const c=track.cues[i]; if(t>=c.startTime && t<=c.endTime){ cue=c; break; } }
+      }
+    }catch(_){
+      // Si no se puede acceder (CORS u otro), no mostramos esa pista pero no rompemos nada
+      el.hidden=true; el.innerHTML=''; return;
     }
     if(!cue){ el.hidden=true; el.innerHTML=''; return; }
 
@@ -400,13 +419,12 @@
   }
 
   function renderCue(){ renderLine(tracks.ja,capJA,'ja'); renderLine(tracks.ro,capRO,'ro'); renderLine(tracks.es,capES,'es'); renderLine(tracks.en,capEN,'en'); }
-  Object.values(tracks).forEach(t=>{ t && t.addEventListener('cuechange', renderCue); });
-  video.addEventListener('timeupdate', renderCue);
-  video.addEventListener('seeked', renderCue);
-  video.addEventListener('ratechange', renderCue);
-  window.addEventListener('load', renderCue);
+  Object.values(tracks).forEach(t=>{ t && t.addEventListener('cuechange', ()=>{ try{ renderCue(); }catch(_){}}); });
+  video.addEventListener('timeupdate', ()=>{ try{ renderCue(); }catch(_){ } });
+  video.addEventListener('seeked', ()=>{ try{ renderCue(); }catch(_){ } });
+  video.addEventListener('ratechange', ()=>{ try{ renderCue(); }catch(_){ } });
+  window.addEventListener('load', ()=>{ try{ renderCue(); }catch(_){ } });
 
-  /* ======== Popover + highlight ======== */
   const pop=$('#popover'), pvWord=$('#pv-word'), pvRead=$('#pv-read'), pvMeaning=$('#pv-meaning');
 
   function longestDictAt(line, pos){
@@ -420,7 +438,6 @@
     return best;
   }
 
-  // helpers de highlight (una sola vez)
   let roBadgeEl=null;
   function clearROHighlight(){
     capRO.querySelectorAll('.hl').forEach(el=>el.classList.remove('hl'));
@@ -429,7 +446,6 @@
   }
   function clearJAHighlight(){ capJA.querySelectorAll('.hl').forEach(el=>el.classList.remove('hl')); }
 
-  // Resaltar en RO a partir de romaji
   function highlightInRO(romaji){
     clearROHighlight();
     if(!state.showRO || !romaji) return;
@@ -458,53 +474,28 @@
     roBadgeEl=document.createElement('span'); roBadgeEl.className='ro-badge'; roBadgeEl.textContent=romaji; capRO.appendChild(roBadgeEl);
   }
 
-  /* === HOVER: Japonés -> Romaji (solo cuando ambos están activos) === */
   capJA.addEventListener('mousemove', (e) => {
     if (!state.showJA) return;
-
     const jaSpan = e.target.closest('.word-ja');
     clearJAHighlight();
-
-    if (!jaSpan) {
-      if (state.showRO) clearROHighlight();
-      return;
-    }
-
-    // resalto JA
+    if (!jaSpan) { if (state.showRO) clearROHighlight(); return; }
     jaSpan.classList.add('hl');
-
-    // sincronizo con RO solo si RO visible
     if (!state.showRO) return;
-
     let romaji = jaSpan.dataset.roma || '';
     let yomi   = jaSpan.dataset.yomi || '';
     const txt  = jaSpan.textContent || '';
-
     if (!yomi && /[\u3040-\u309F]/.test(txt)) yomi = txt;
     if (!romaji && yomi) romaji = hiraToRoma(yomi);
-
     if (romaji) highlightInRO(romaji); else clearROHighlight();
   });
+  capJA.addEventListener('mouseleave', () => { clearJAHighlight(); if (state.showRO) clearROHighlight(); });
 
-  capJA.addEventListener('mouseleave', () => {
-    clearJAHighlight();
-    if (state.showRO) clearROHighlight();
-  });
-
-  /* === HOVER: Romaji -> Japonés (si JA visible) === */
   capRO.addEventListener('mousemove', (e)=>{
     if(!state.showRO) return;
-
     const roSpan = e.target.closest('.word-ro');
     clearROHighlight();
-
-    if(!roSpan){
-      if(state.showJA) clearJAHighlight();
-      return;
-    }
-
+    if(!roSpan){ if(state.showJA) clearJAHighlight(); return; }
     roSpan.classList.add('hl');
-
     if(!state.showJA) return;
 
     const toks = Array.from(capRO.querySelectorAll('.word-ro'));
@@ -516,8 +507,7 @@
     for (let w=4; w>=1; w--) {
       for (let start=idx-(w-1); start<=idx; start++) {
         if (start<0) continue;
-        const parts=[];
-        for (let k=0;k<w;k++){ const t=get(start+k); if(!t){ parts.length=0; break; } parts.push(t); }
+        const parts=[]; for (let k=0;k<w;k++){ const t=get(start+k); if(!t){ parts.length=0; break; } parts.push(t); }
         if(!parts.length) continue;
         const cand = parts.join(' ');
         for (const k of DICT_KEYS) {
@@ -529,7 +519,6 @@
 
     if(match){
       for (let i=win.start; i<=win.end; i++) toks[i].classList.add('hl');
-
       clearJAHighlight();
       let found=false;
       capJA.querySelectorAll('.word-ja').forEach(sp=>{
@@ -553,20 +542,15 @@
       }
     }
   });
+  capRO.addEventListener('mouseleave', ()=>{ clearROHighlight(); if(state.showJA) clearJAHighlight(); });
 
-  capRO.addEventListener('mouseleave', ()=>{
-    clearROHighlight();
-    if(state.showJA) clearJAHighlight();
-  });
-
-  /* === CLICK EN JAPO: popover + sincroniza RO === */
   document.addEventListener('click',(e)=>{
     if(!state.showJA) return;
     if(!capJA.contains(e.target)) { if(!e.target.closest('#popover')) pop.style.display='none'; return; }
 
     const span=e.target.closest('.word-ja'); if(!span) return;
     const lineWrap=span.closest('.line-ja');
-    const lineText=lineWrap?lineWrap.dataset.text||'':''; 
+    const lineText=lineWrap?lineWrap.dataset.text||'':'';
     const start=Number(span.dataset.start)||0, end=Number(span.dataset.end)||start+(span.textContent||'').length;
     const pos=Math.floor((start+end)/2);
 
@@ -591,7 +575,6 @@
     if(romaOut) highlightInRO(romaOut);
   }, true);
 
-  /* === CLICK EN ROMAJI: popover + reflejo JA === */
   document.addEventListener('click',(e)=>{
     if(!state.showRO) return;
     if(!capRO.contains(e.target)) return;
@@ -605,8 +588,7 @@
     for (let w=4; w>=1; w--) {
       for (let start=idx-(w-1); start<=idx; start++) {
         if (start<0) continue;
-        const parts=[];
-        for (let k=0;k<w;k++){ const t=get(start+k); if(!t){ parts.length=0; break; } parts.push(t); }
+        const parts=[]; for (let k=0;k<w;k++){ const t=get(start+k); if(!t){ parts.length=0; break; } parts.push(t); }
         if(parts.length) candidates.push({start, end:start+w-1, text:parts.join(' ')});
       }
     }
@@ -654,18 +636,17 @@
     }
   });
 
-  // limpieza global
   document.addEventListener('mouseleave', ()=>{ clearJAHighlight(); clearROHighlight(); }, true);
 
-  // Herramientas y atajos
   $('#btnTest').addEventListener('click', ()=>{ setSrc('https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4'); log('Cargando video de prueba MDN'); });
   $('#btnURL').addEventListener('click', ()=>{ const u=prompt('Pegá una URL directa a .mp4 (https://...)'); if(!u) return; setSrc(u.trim()); log('Cambié src a '+u); });
   document.addEventListener('keydown',(e)=>{ if(e.key==='j' || e.key==='J'){ togJA.click(); } if(e.key==='a' || e.key==='A'){ togRO.click(); } if(e.key==='e' || e.key==='E'){ togES.click(); } if(e.key==='g' || e.key==='G'){ togFG.click(); } });
 
-  // inicial
-  renderCue();
+  try{ renderCue(); }catch(_){}
 })();
 </script>
 </body>
 </html>
+
+
 
