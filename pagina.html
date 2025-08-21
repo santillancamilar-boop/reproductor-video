@@ -1,26 +1,11 @@
-<!DOCTYPE html> 
+<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
   <title>Reproductor DBZ — Pages</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
-    :root{
-      --bg:#f6f7fb; 
-      --ink:#2d2a32; 
-      --muted:#6b6a73; 
-      --panel:#ffffff; 
-      --edge:#e9e8f2; 
-      --accent:#b59bff;
-
-      /* 🎨 Colores agregados (no sustituyen a los originales) */
-      --ink-new: #111827;
-      --brand: #5b21b6;
-      --muted-new: #6b7280;
-      --grad1: #f0abfc;
-      --grad2: #93c5fd;
-      --grad3: #a7f3d0;
-    }
+    :root{ --bg:#f6f7fb; --ink:#2d2a32; --muted:#6b6a73; --panel:#ffffff; --edge:#e9e8f2; --accent:#b59bff; }
     *{box-sizing:border-box} html,body{height:100%}
     body{
       margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial; color:var(--ink);
@@ -66,8 +51,6 @@
     .track-ja{ background:rgba(255,255,255,.92) }
     .track-romaji{ background:rgba(255,245,232,.95) }
     .track-es{ background:rgba(236,253,245,.95) }
-    /* NUEVO: estilo para EN (similar suavidad) */
-    .track-en{ background:rgba(230,244,255,.95) }
 
     .word-ja{ cursor:pointer; padding:0 2px; border-radius:6px }
     .word-ja:hover{ background:rgba(0,0,0,.06) }
@@ -102,8 +85,6 @@
         <track id="trk-ja" label="日本語"   kind="subtitles" srclang="ja"      src="subs-ja.vtt" default />
         <track id="trk-ro" label="Rōmaji"  kind="subtitles" srclang="ja-Latn" src="subs-ro.vtt" />
         <track id="trk-es" label="Español" kind="subtitles" srclang="es"      src="subs-es.vtt" />
-        <!-- NUEVO: pista en inglés -->
-        <track id="trk-en" label="English" kind="subtitles" srclang="en"      src="subs-en.vtt" />
         Tu navegador no soporta la etiqueta <code>video</code>.
       </video>
 
@@ -113,8 +94,6 @@
         <div class="cap-line track-ja"     id="cap-ja" hidden></div>
         <div class="cap-line track-romaji" id="cap-romaji" hidden></div>
         <div class="cap-line track-es"     id="cap-es" hidden></div>
-        <!-- NUEVO: línea para EN -->
-        <div class="cap-line track-en"     id="cap-en" hidden></div>
       </div>
 
       <div class="popover" id="popover">
@@ -156,8 +135,6 @@
         <button class="btn" id="tog-ja"      aria-pressed="true"  title="Alternar Japonés">JA</button>
         <button class="btn" id="tog-romaji"  aria-pressed="false" title="Alternar Rōmaji">RO</button>
         <button class="btn" id="tog-es"      aria-pressed="false" title="Alternar Español">ES</button>
-        <!-- NUEVO: botón para EN -->
-        <button class="btn" id="tog-en"      aria-pressed="false" title="Alternar Inglés">EN</button>
         <button class="btn" id="tog-fg"      aria-pressed="false" title="Furigana en JA">FG</button>
         <button class="btn" id="fs"          title="Pantalla completa">⤢</button>
       </div>
@@ -170,8 +147,6 @@
       <span class="pill" id="pillJA">JA: —</span>
       <span class="pill" id="pillRO">RO: —</span>
       <span class="pill" id="pillES">ES: —</span>
-      <!-- NUEVO: pill de estado EN -->
-      <span class="pill" id="pillEN">EN: —</span>
     </div>
     <div class="diag" id="diag"></div>
 
@@ -693,3 +668,4 @@
 </script>
 </body>
 </html>
+
