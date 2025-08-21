@@ -50,10 +50,10 @@
     /* Subtítulos overlay */
     .captions{ position:absolute; left:0; right:0; bottom:6%; display:flex; flex-direction:column; gap:6px; align-items:center; padding:0 12px; z-index:5; pointer-events:auto }
     .cap-line{ max-width:min(86%, 900px); width:fit-content; color:#111; font-weight:600; letter-spacing:.2px; line-height:1.35; border-radius:14px; padding:8px 12px; box-shadow:0 6px 20px rgba(0,0,0,.16) }
-    .track-ja{ background:rgba(255,255,255,.92) }
-    .track-romaji{ background:rgba(255,245,232,.95) }
-    .track-es{ background:rgba(236,253,245,.95) }
-    .track-en{ background:rgba(219,234,254,.95) }
+.track-ja{ background:rgba(219,234,254,.95) }   /* celeste pastel */
+.track-romaji{ background:rgba(255,245,232,.95) } /* rosado cálido */
+.track-es{ background:rgba(236,253,245,.95) }   /* verde agua pastel */
+.track-en{ background:rgba(254,249,195,.95) }   /* amarillo pastel */
 
     .word-ja{ cursor:pointer; padding:0 2px; border-radius:6px }
     .word-ja:hover{ background:rgba(0,0,0,.06) }
@@ -97,10 +97,10 @@
     .pill{ background:var(--grad3); color:var(--ink); }
 
     /* Subtítulos: 4 colores distintos */
-    .track-romaji{ background:var(--grad1); color:#111; } /* RO: rosa */
-    .track-es{     background:var(--grad3); color:#111; } /* ES: verde agua */
+    .track-romaji{ background:var(--grad2); color:#111; } /* RO: rosa */
+    .track-es{     background:var(--grad2); color:#111; } /* ES: verde agua */
     .track-ja{     background:var(--grad2); color:#111; } /* JA: celeste */
-    .track-en{     background:var(--brand); color:#fff59d; } /* EN: violeta + texto amarillo para alto contraste */
+    .track-en{     background:var(--grad2; color:#111; } /* EN: violeta + texto amarillo para alto contraste */
 
     /* Tiempo total (badge) y #duration más oscuros para verse siempre */
     .badge{ background:#111827 !important; color:#fff !important; }
@@ -721,6 +721,7 @@
 </script>
 </body>
 </html>
+
 
 
 
