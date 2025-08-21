@@ -45,7 +45,7 @@
     .select{ padding:8px 10px; border-radius:12px; border:1px solid var(--edge); background:linear-gradient(180deg,#fff,#fafafe); color:var(--ink) }
     .foot{ color:var(--muted); font-size:13px; padding:0 16px 16px }
 
-    /* Subtítulos overlay */
+    /* Subtítulos overlay (no usado en este JS; dejamos tal cual) */
     .captions{ position:absolute; left:0; right:0; bottom:6%; display:flex; flex-direction:column; gap:6px; align-items:center; padding:0 12px; z-index:5; pointer-events:auto }
     .cap-line{ max-width:min(86%, 900px); width:fit-content; color:#111; font-weight:600; letter-spacing:.2px; line-height:1.35; border-radius:14px; padding:8px 12px; box-shadow:0 6px 20px rgba(0,0,0,.16) }
     .track-ja{ background:rgba(255,255,255,.92) }
@@ -85,6 +85,8 @@
         <track id="trk-ja" label="日本語"   kind="subtitles" srclang="ja"      src="subs-ja.vtt" default />
         <track id="trk-ro" label="Rōmaji"  kind="subtitles" srclang="ja-Latn" src="subs-ro.vtt" />
         <track id="trk-es" label="Español" kind="subtitles" srclang="es"      src="subs-es.vtt" />
+        <!-- NUEVO: inglés -->
+        <track id="trk-en" label="English" kind="subtitles" srclang="en"      src="subs-en.vtt" />
         Tu navegador no soporta la etiqueta <code>video</code>.
       </video>
 
@@ -135,6 +137,8 @@
         <button class="btn" id="tog-ja"      aria-pressed="true"  title="Alternar Japonés">JA</button>
         <button class="btn" id="tog-romaji"  aria-pressed="false" title="Alternar Rōmaji">RO</button>
         <button class="btn" id="tog-es"      aria-pressed="false" title="Alternar Español">ES</button>
+        <!-- NUEVO: Inglés -->
+        <button class="btn" id="tog-en"      aria-pressed="false" title="Alternar Inglés">EN</button>
         <button class="btn" id="tog-fg"      aria-pressed="false" title="Furigana en JA">FG</button>
         <button class="btn" id="fs"          title="Pantalla completa">⤢</button>
       </div>
@@ -147,13 +151,14 @@
       <span class="pill" id="pillJA">JA: —</span>
       <span class="pill" id="pillRO">RO: —</span>
       <span class="pill" id="pillES">ES: —</span>
+      <span class="pill" id="pillEN">EN: —</span>
     </div>
     <div class="diag" id="diag"></div>
 
     <div class="foot">Atajos: Espacio · ←/→ ±5s · ↑/↓ volumen · M mute · F pantalla completa · J/A/E alternar JA/RO/ES · G furigana</div>
   </div>
 
-  <!-- JS mínimo para que reproduzca con tus controles -->
+  <!-- JS mínimo: reproducción + subtítulos nativos (incluye EN) -->
   <script>
   (function(){
     const $ = (s)=>document.querySelector(s);
@@ -164,20 +169,20 @@
     const cur=$('#currentTime'), dur=$('#duration'), muteBtn=$('#mute'),
           vol=$('#volume'), speed=$('#speed'), fs=$('#fs'), badgeDur=$('#badgeDur');
     const statusSrc=$('#statusSrc');
+    const togJA=$('#tog-ja'), togRO=$('#tog-romaji'), togES=$('#tog-es'), togEN=$('#tog-en');
+    const pillJA=$('#pillJA'), pillRO=$('#pillRO'), pillES=$('#pillES'), pillEN=$('#pillEN');
 
     function formatTime(s){
       if(!isFinite(s)) return '0:00';
       const h=Math.floor(s/3600), m=Math.floor((s%3600)/60), sec=String(Math.floor(s%60)).padStart(2,'0');
       return (h>0? h+':'+String(m).padStart(2,'0'):m)+':'+sec;
     }
-
     function updateTime(){
       cur.textContent = formatTime(video.currentTime||0);
       const pct = (video.currentTime/(video.duration||1))*100;
       progressBar.style.width = pct + '%';
       seek.value = Math.round((video.currentTime/(video.duration||1))*1000)||0;
     }
-
     function updateBuffered(){
       try{
         if(video.buffered && video.buffered.length){
@@ -186,10 +191,9 @@
         }
       }catch(_){}
     }
-
     function togglePlay(){ (video.paused||video.ended)?video.play():video.pause(); }
 
-    // Wiring básico
+    // Reproducción
     video.addEventListener('loadedmetadata',()=>{
       dur.textContent = formatTime(video.duration);
       badgeDur.textContent = formatTime(video.duration);
@@ -220,7 +224,7 @@
     function toggleFS(){ if(document.fullscreenElement) document.exitFullscreen(); else player.requestFullscreen().catch(()=>{}); }
     fs.addEventListener('click', toggleFS);
 
-    // Botones de herramientas
+    // Cargar pruebas / URL
     $('#btnTest').addEventListener('click', ()=>{
       const u='https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4';
       srcEl.src=u; statusSrc.textContent='src: '+u; video.load();
@@ -230,6 +234,50 @@
       srcEl.src=u.trim(); statusSrc.textContent='src: '+u.trim(); video.load();
     });
 
+    // ===== Subtítulos nativos =====
+    // Desactiva todos al inicio y deja JA "showing" (porque su botón arranca aria-pressed="true")
+    function allHidden(){
+      for(const t of video.textTracks){ try{ t.mode='hidden'; }catch(_){} }
+    }
+    function pill(el, txt){ if(el) el.textContent = txt; }
+    function refreshPills(){
+      const counts = {ja:0, ro:0, es:0, en:0};
+      for(const t of video.textTracks){
+        const lang = (t.language||'').toLowerCase();
+        try{ counts[lang.includes('latn')?'ro':lang] = (t.cues?t.cues.length:0); }catch(_){}
+      }
+      pill(pillJA, `JA: ${counts.ja||0}`); 
+      pill(pillRO, `RO: ${counts.ro||0}`); 
+      pill(pillES, `ES: ${counts.es||0}`);
+      pill(pillEN, `EN: ${counts.en||0}`);
+    }
+    function setPressed(btn, on){ if(!btn) return; btn.setAttribute('aria-pressed', on?'true':'false'); }
+
+    function toggleTrackByLang(langCode, btn){
+      // permitir múltiples a la vez (toggle independiente)
+      for(const t of video.textTracks){
+        const lang = (t.language||'').toLowerCase();
+        const isTarget = (langCode==='ro') ? lang.includes('latn') : lang===langCode;
+        if(isTarget){
+          const nowOn = (t.mode==='showing');
+          t.mode = nowOn ? 'hidden' : 'showing';
+          setPressed(btn, !nowOn);
+        }
+      }
+    }
+
+    // Inicial: todos ocultos, y si JA tiene botón en true, lo mostramos
+    allHidden();
+    if(togJA && togJA.getAttribute('aria-pressed')==='true'){
+      toggleTrackByLang('ja', togJA);
+    }
+    refreshPills();
+
+    togJA && togJA.addEventListener('click', ()=> toggleTrackByLang('ja', togJA));
+    togRO && togRO.addEventListener('click', ()=> toggleTrackByLang('ro', togRO)); // ja-Latn
+    togES && togES.addEventListener('click', ()=> toggleTrackByLang('es', togES));
+    togEN && togEN.addEventListener('click', ()=> toggleTrackByLang('en', togEN));
+
     // Atajos
     document.addEventListener('keydown',(e)=>{
       if(e.code==='Space'){ e.preventDefault(); togglePlay(); }
@@ -237,13 +285,25 @@
       if(e.key==='ArrowRight'){ video.currentTime=Math.min(video.duration||0,(video.currentTime||0)+5); }
       if(e.key==='m' || e.key==='M'){ video.muted=!video.muted; updateMuteIcon(); }
       if(e.key==='f' || e.key==='F'){ toggleFS(); }
+      // Opcionales: teclas rápidas para subs
+      if(e.key==='j' || e.key==='J'){ togJA && togJA.click(); }
+      if(e.key==='a' || e.key==='A'){ togRO && togRO.click(); }
+      if(e.key==='e' || e.key==='E'){ togES && togES.click(); }
+      if(e.key==='n' || e.key==='N'){ togEN && togEN.click(); } // EN
     });
 
-    // Inicial
+    // Cuando cargan los tracks, refrescamos conteos (no rompe si CORS)
+    for(const tr of video.textTracks){
+      try{
+        tr.addEventListener('cuechange', refreshPills);
+        // algunos navegadores no disparan eventos al cargar: hacemos un timeout
+        setTimeout(refreshPills, 500);
+      }catch(_){}
+    }
+
     updateTime();
   })();
   </script>
 </body>
 </html>
-
 
