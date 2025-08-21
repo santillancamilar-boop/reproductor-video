@@ -5,19 +5,7 @@
   <title>Reproductor DBZ — Pages</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
-    :root{ 
-      --ink:#111827;          /* texto principal oscuro */
-      --brand:#5b21b6;        /* violeta de acento */
-      --muted:#6b7280;        /* gris medio */
-      --grad1:#f0abfc;        /* rosa */
-      --grad2:#93c5fd;        /* celeste */
-      --grad3:#a7f3d0;        /* verde agua */
-      --bg:#f6f7fb; 
-      --panel:#ffffff; 
-      --edge:#e9e8f2; 
-      --accent:#b59bff; 
-    }
-
+    :root{ --bg:#f6f7fb; --ink:#2d2a32; --muted:#6b6a73; --panel:#ffffff; --edge:#e9e8f2; --accent:#b59bff; }
     *{box-sizing:border-box} html,body{height:100%}
     body{
       margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial; color:var(--ink);
@@ -41,23 +29,18 @@
     .controls{ display:grid; grid-template-columns:auto 1fr auto; align-items:center; gap:14px 16px; padding:14px 16px 12px }
     .row{ display:flex; align-items:center; gap:8px }
     .btn{ --size:40px; width:var(--size); height:var(--size); display:grid; place-items:center; border-radius:12px; border:1px solid var(--edge); background:linear-gradient(180deg,#fff,#fafafe); box-shadow:0 6px 16px rgba(23,15,41,.08); cursor:pointer; color:var(--ink) }
-    .btn[aria-pressed="true"]{ background:var(--brand); color:#fff; }
-    .btn[aria-pressed="false"]{ background:#fff; color:var(--muted); }
+    .btn[aria-pressed="true"]{ outline:2px solid color-mix(in oklch,var(--accent),white 15%) }
 
     .seek{ grid-column:1/-1; display:grid; grid-template-columns:auto 1fr auto; align-items:center; gap:10px }
-    .time{ font-variant-numeric:tabular-nums; font-size:14px; min-width:70px; text-align:center }
-    #currentTime{ color:var(--ink); }
-    #duration{ color:var(--muted); }
-
+    .time{ font-variant-numeric:tabular-nums; color:var(--muted); font-size:14px; min-width:70px; text-align:center }
     .range{ position:relative; height:22px; display:grid; align-items:center }
     .buffered,.progress{ pointer-events:none; position:absolute; left:0; height:4px; border-radius:999px }
-    .buffered{ width:0%; background:var(--muted) } 
-    .progress{ width:0%; background:var(--brand) }
+    .buffered{ width:0%; background:#e8e7f4 } .progress{ width:0%; background:var(--accent) }
     input[type="range"].slider{-webkit-appearance:none; appearance:none; width:100%; height:4px; background:transparent; outline:none}
-    input[type="range"].slider::-webkit-slider-thumb{-webkit-appearance:none; width:16px; height:16px; border-radius:50%; background:white; border:2px solid var(--brand); box-shadow:0 2px 6px rgba(0,0,0,.12); margin-top:-6px}
+    input[type="range"].slider::-webkit-slider-thumb{-webkit-appearance:none; width:16px; height:16px; border-radius:50%; background:white; border:2px solid var(--accent); box-shadow:0 2px 6px rgba(0,0,0,.12); margin-top:-6px}
     .vol{width:min(180px,25vw)}
     input[type="range"].vol-slider{-webkit-appearance:none; appearance:none; width:100%; height:4px; background:#efeef8; border-radius:999px}
-    input[type="range"].vol-slider::-webkit-slider-thumb{ width:14px; height:14px; border-radius:50%; background:var(--brand) }
+    input[type="range"].vol-slider::-webkit-slider-thumb{ width:14px; height:14px; border-radius:50%; background:var(--accent) }
 
     .select{ padding:8px 10px; border-radius:12px; border:1px solid var(--edge); background:linear-gradient(180deg,#fff,#fafafe); color:var(--ink) }
     .foot{ color:var(--muted); font-size:13px; padding:0 16px 16px }
@@ -66,9 +49,9 @@
     .captions{ position:absolute; left:0; right:0; bottom:6%; display:flex; flex-direction:column; gap:6px; align-items:center; padding:0 12px; z-index:5; pointer-events:auto }
     .cap-line{ max-width:min(86%, 900px); width:fit-content; color:#111; font-weight:600; letter-spacing:.2px; line-height:1.35; border-radius:14px; padding:8px 12px; box-shadow:0 6px 20px rgba(0,0,0,.16) }
     .track-ja{ background:rgba(255,255,255,.92) }
-    .track-romaji{ background:var(--grad1) }
-    .track-es{ background:var(--grad2) }
-    .track-en{ background:var(--grad3) }
+    .track-romaji{ background:rgba(255,245,232,.95) }
+    .track-es{ background:rgba(236,253,245,.95) }
+    .track-en{ background:rgba(219,234,254,.95) }
 
     .word-ja{ cursor:pointer; padding:0 2px; border-radius:6px }
     .word-ja:hover{ background:rgba(0,0,0,.06) }
@@ -89,8 +72,54 @@
 
     ruby{ ruby-position:over; } rt{ font-size:.65em; color:#6b6a73 }
   </style>
+
+  <!-- 🎨 Overrides de color con tu paleta -->
+  <style id="palette-overrides">
+    :root {
+      --ink: #111827;
+      --brand: #5b21b6;
+      --muted: #6b7280;
+      --grad1: #f0abfc;
+      --grad2: #93c5fd;
+      --grad3: #a7f3d0;
+    }
+
+    .header {
+      background: linear-gradient(135deg, var(--grad1), var(--grad2));
+      color: white;
+    }
+    .btn[aria-pressed="true"] {
+      outline: 2px solid var(--grad1);
+    }
+    .progress {
+      background: var(--brand);
+    }
+    .buffered {
+      background: var(--grad2);
+    }
+    .pill {
+      background: var(--grad3);
+      color: var(--ink);
+    }
+    .track-ja {
+      background: rgba(255,255,255,0.95);
+    }
+    .track-romaji {
+      background: var(--grad1);
+    }
+    .track-es {
+      background: var(--grad3);
+    }
+    .track-en {
+      background: var(--grad2);
+    }
+  </style>
 </head>
 <body>
+  <!-- 🎥 el resto del HTML sigue igual (video, controles, etc.) -->
+</body>
+</html>
+
   <div class="player" id="player" tabindex="0" aria-label="Reproductor de video con subtítulos y panel flotante">
     <div class="header">
       <h1 class="title">Proyecto integral — Reproductor</h1>
@@ -701,6 +730,7 @@
 </script>
 </body>
 </html>
+
 
 
 
