@@ -167,6 +167,12 @@
   roClickCSS.textContent = '.track-romaji .word-ro{pointer-events:auto;cursor:pointer}';
   document.head.appendChild(roClickCSS);
 
+  /* === 🔧 Estilo para subtítulo EN === */
+  const enStyle = document.createElement('style');
+  enStyle.textContent = '.track-en{ background:rgba(255,255,255,.92); }';
+  document.head.appendChild(enStyle);
+  /* === fin fix === */
+
   const bigPlay=$('#bigPlay'), playBtn=$('#play'), iconPlay=$('#icon-play');
   const back10=$('#back10'), fwd10=$('#fwd10'), seek=$('#seek'),
         progressBar=$('#progressBar'), bufferedBar=$('#bufferedBar');
@@ -677,6 +683,7 @@
 </script>
 </body>
 </html>
+
 
 
 
