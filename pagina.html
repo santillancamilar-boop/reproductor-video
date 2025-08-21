@@ -173,7 +173,7 @@
   const cur=$('#currentTime'), dur=$('#duration'), muteBtn=$('#mute'),
         vol=$('#volume'), speed=$('#speed'), fs=$('#fs'), badgeDur=$('#badgeDur');
   const diag=$('#diag'), statusSrc=$('#statusSrc');
-  const pillJA=$('#pillJA'), pillRO=$('#pillRO'), pillES=$('#pillES');
+  const pillJA=$('#pillJA'), pillRO=$('#pillRO'), pillES=$('#pillES'), pillEN=(document.querySelectorAll('#pillES')[1]||null);
 
   function log(msg){ diag.innerHTML = '['+new Date().toLocaleTimeString()+'] '+msg+'<br>'+diag.innerHTML; }
   function setSrc(url){ srcEl.src=url; statusSrc.textContent='src: '+url; video.load(); }
@@ -203,31 +203,32 @@
   function toggleFS(){ if(document.fullscreenElement) document.exitFullscreen(); else player.requestFullscreen().catch(()=>{}); }
   fs.addEventListener('click', toggleFS);
 
-  const capJA=$('#cap-ja'), capRO=$('#cap-romaji'), capES=$('#cap-es');
-  const trkJA=$('#trk-ja'), trkRO=$('#trk-ro'), trkES=$('#trk-es');
-  const togJA=$('#tog-ja'), togRO=$('#tog-romaji'), togES=$('#tog-es'), togFG=$('#tog-fg');
+  const capJA=$('#cap-ja'), capRO=$('#cap-romaji'), capES=$('#cap-es'), capEN=$('#cap-en');
+  const trkJA=$('#trk-ja'), trkRO=$('#trk-ro'), trkES=$('#trk-es'), trkEN=$('#trk-en');
+  const togJA=$('#tog-ja'), togRO=$('#tog-romaji'), togES=$('#tog-es'), togEN=$('#tog-en'), togFG=$('#tog-fg');
 
-  const tracks={ ja:trkJA?.track || null, ro:trkRO?.track || null, es:trkES?.track || null };
+  const tracks={ ja:trkJA?.track || null, ro:trkRO?.track || null, es:trkES?.track || null, en:trkEN?.track || null };
   Object.values(tracks).forEach(t=>{ if(t){ try{ t.mode='hidden'; }catch(_){} } });
 
   function armTrack(el, name, pill){
-    if(!el){ pill.textContent = name.toUpperCase()+': —'; return; }
+    if(!el){ if(pill) pill.textContent = name.toUpperCase()+': —'; return; }
     const t = el.track;
-    function ok(){ pill.textContent = `${name.toUpperCase()}: ok (${t.cues?t.cues.length:0})`; renderCue(); }
-    function err(){ pill.textContent = `${name.toUpperCase()}: error`; }
+    function ok(){ if(pill) pill.textContent = `${name.toUpperCase()}: ok (${t.cues?t.cues.length:0})`; renderCue(); }
+    function err(){ if(pill) pill.textContent = `${name.toUpperCase()}: error`; }
     if (el.readyState === 2) ok(); else { el.addEventListener('load', ok, {once:true}); el.addEventListener('error', err, {once:true}); }
   }
-  armTrack(trkJA,'ja',pillJA); armTrack(trkRO,'ro',pillRO); armTrack(trkES,'es',pillES);
+  armTrack(trkJA,'ja',pillJA); armTrack(trkRO,'ro',pillRO); armTrack(trkES,'es',pillES); armTrack(trkEN,'en',pillEN);
 
-  const state={ showJA:true, showRO:false, showES:false, showFG:false };
-  const setToggle=(btn,on)=>btn.setAttribute('aria-pressed', on);
-  function syncToggles(){ setToggle(togJA,state.showJA); setToggle(togRO,state.showRO); setToggle(togES,state.showES); setToggle(togFG,state.showFG); }
+  const state={ showJA:true, showRO:false, showES:false, showEN:false, showFG:false };
+  const setToggle=(btn,on)=>btn && btn.setAttribute('aria-pressed', on);
+  function syncToggles(){ setToggle(togJA,state.showJA); setToggle(togRO,state.showRO); setToggle(togES,state.showES); setToggle(togEN,state.showEN); setToggle(togFG,state.showFG); }
   function rerenderAndClean(){ renderCue(); clearJAHighlight(); clearROHighlight(); }
   syncToggles();
-  togJA.addEventListener('click', ()=>{ state.showJA=!state.showJA; syncToggles(); rerenderAndClean(); });
-  togRO.addEventListener('click', ()=>{ state.showRO=!state.showRO; syncToggles(); rerenderAndClean(); });
-  togES.addEventListener('click', ()=>{ state.showES=!state.showES; syncToggles(); rerenderAndClean(); });
-  togFG.addEventListener('click', ()=>{ state.showFG=!state.showFG; syncToggles(); renderCue(); });
+  togJA && togJA.addEventListener('click', ()=>{ state.showJA=!state.showJA; syncToggles(); rerenderAndClean(); });
+  togRO && togRO.addEventListener('click', ()=>{ state.showRO=!state.showRO; syncToggles(); rerenderAndClean(); });
+  togES && togES.addEventListener('click', ()=>{ state.showES=!state.showES; syncToggles(); rerenderAndClean(); });
+  togEN && togEN.addEventListener('click', ()=>{ state.showEN=!state.showEN; syncToggles(); rerenderAndClean(); });
+  togFG && togFG.addEventListener('click', ()=>{ state.showFG=!state.showFG; syncToggles(); renderCue(); });
 
   /* ======== Diccionario ======== */
   const JA_DICT={
@@ -344,7 +345,7 @@
 
   /* ======== Render ======== */
   function renderLine(track, el, mode){
-    const show=(state.showJA&&mode==='ja')||(state.showRO&&mode==='ro')||(state.showES&&mode==='es');
+    const show=(state.showJA&&mode==='ja')||(state.showRO&&mode==='ro')||(state.showES&&mode==='es')||(state.showEN&&mode==='en');
     if(!show){ el.hidden=true; el.innerHTML=''; return; }
 
     let cue=null;
@@ -402,7 +403,12 @@
     }
   }
 
-  function renderCue(){ renderLine(tracks.ja,capJA,'ja'); renderLine(tracks.ro,capRO,'ro'); renderLine(tracks.es,capES,'es'); }
+  function renderCue(){
+    renderLine(tracks.ja,capJA,'ja');
+    renderLine(tracks.ro,capRO,'ro');
+    renderLine(tracks.es,capES,'es');
+    renderLine(tracks.en,capEN,'en');
+  }
   Object.values(tracks).forEach(t=>{ t && t.addEventListener('cuechange', renderCue); });
   video.addEventListener('timeupdate', renderCue);
   video.addEventListener('seeked', renderCue);
@@ -663,7 +669,7 @@
   // Herramientas y atajos
   $('#btnTest').addEventListener('click', ()=>{ setSrc('https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4'); log('Cargando video de prueba MDN'); });
   $('#btnURL').addEventListener('click', ()=>{ const u=prompt('Pegá una URL directa a .mp4 (https://...)'); if(!u) return; setSrc(u.trim()); log('Cambié src a '+u); });
-  document.addEventListener('keydown',(e)=>{ if(e.key==='j' || e.key==='J'){ togJA.click(); } if(e.key==='a' || e.key==='A'){ togRO.click(); } if(e.key==='e' || e.key==='E'){ togES.click(); } if(e.key==='g' || e.key==='G'){ togFG.click(); } });
+  document.addEventListener('keydown',(e)=>{ if(e.key==='j' || e.key==='J'){ togJA && togJA.click(); } if(e.key==='a' || e.key==='A'){ togRO && togRO.click(); } if(e.key==='e' || e.key==='E'){ togES && togES.click(); } if(e.key==='n' || e.key==='N'){ togEN && togEN.click(); } if(e.key==='g' || e.key==='G'){ togFG && togFG.click(); } });
 
   // inicial
   renderCue();
@@ -671,7 +677,6 @@
 </script>
 </body>
 </html>
-
 
 
 
