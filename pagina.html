@@ -5,7 +5,7 @@
   <title>Reproductor DBZ — Pages</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-  <!-- ====== ESTILOS BASE ====== -->
+  <!-- ====== TUS ESTILOS ORIGINALES (sin cambios funcionales) ====== -->
   <style>
     :root{ --bg:#f6f7fb; --ink:#2d2a32; --muted:#6b6a73; --panel:#ffffff; --edge:#e9e8f2; --accent:#b59bff; }
     *{box-sizing:border-box} html,body{height:100%}
@@ -19,9 +19,9 @@
     }
     .player{ background:var(--panel); border:1px solid var(--edge); border-radius:22px; box-shadow:0 10px 30px rgba(23,15,41,.08); max-width:960px; width:100% }
     .header{ display:flex; align-items:center; justify-content:space-between; gap:12px; padding:14px 16px;
-      background:linear-gradient(135deg, #f0abfc, #93c5fd); color:#fff }
+      background:linear-gradient(135deg, color-mix(in oklch,var(--accent), white 20%), color-mix(in oklch,var(--accent), black 8%)); color:#2b223d }
     .title{ margin:0; font-size:16px; font-weight:700; letter-spacing:.3px }
-    .badge{ font-size:12px; padding:6px 10px; border-radius:999px; background:#111827; color:#fff }
+    .badge{ font-size:12px; padding:6px 10px; border-radius:999px; background:rgba(255,255,255,.65); border:1px solid rgba(0,0,0,.05) }
 
     .stage{ position:relative; background:#000 }
     video{ width:100%; height:auto; display:block; background:#000; position:relative; z-index:1 }
@@ -31,19 +31,18 @@
     .controls{ display:grid; grid-template-columns:auto 1fr auto; align-items:center; gap:14px 16px; padding:14px 16px 12px }
     .row{ display:flex; align-items:center; gap:8px }
     .btn{ --size:40px; width:var(--size); height:var(--size); display:grid; place-items:center; border-radius:12px; border:1px solid var(--edge); background:linear-gradient(180deg,#fff,#fafafe); box-shadow:0 6px 16px rgba(23,15,41,.08); cursor:pointer; color:var(--ink) }
-    .btn[aria-pressed="true"]{ outline:2px solid #b59bff }
+    .btn[aria-pressed="true"]{ outline:2px solid color-mix(in oklch,var(--accent),white 15%) }
 
     .seek{ grid-column:1/-1; display:grid; grid-template-columns:auto 1fr auto; align-items:center; gap:10px }
     .time{ font-variant-numeric:tabular-nums; color:var(--muted); font-size:14px; min-width:70px; text-align:center }
     .range{ position:relative; height:22px; display:grid; align-items:center }
     .buffered,.progress{ pointer-events:none; position:absolute; left:0; height:4px; border-radius:999px }
-    .buffered{ width:0%; background:#93c5fd } 
-    .progress{ width:0%; background:#5b21b6 }
+    .buffered{ width:0%; background:#e8e7f4 } .progress{ width:0%; background:var(--accent) }
     input[type="range"].slider{-webkit-appearance:none; appearance:none; width:100%; height:4px; background:transparent; outline:none}
-    input[type="range"].slider::-webkit-slider-thumb{-webkit-appearance:none; width:16px; height:16px; border-radius:50%; background:white; border:2px solid #5b21b6; box-shadow:0 2px 6px rgba(0,0,0,.12); margin-top:-6px}
+    input[type="range"].slider::-webkit-slider-thumb{-webkit-appearance:none; width:16px; height:16px; border-radius:50%; background:white; border:2px solid var(--accent); box-shadow:0 2px 6px rgba(0,0,0,.12); margin-top:-6px}
     .vol{width:min(180px,25vw)}
     input[type="range"].vol-slider{-webkit-appearance:none; appearance:none; width:100%; height:4px; background:#efeef8; border-radius:999px}
-    input[type="range"].vol-slider::-webkit-slider-thumb{ width:14px; height:14px; border-radius:50%; background:#5b21b6 }
+    input[type="range"].vol-slider::-webkit-slider-thumb{ width:14px; height:14px; border-radius:50%; background:var(--accent) }
 
     .select{ padding:8px 10px; border-radius:12px; border:1px solid var(--edge); background:linear-gradient(180deg,#fff,#fafafe); color:var(--ink) }
     .foot{ color:var(--muted); font-size:13px; padding:0 16px 16px }
@@ -51,18 +50,16 @@
     /* Subtítulos overlay */
     .captions{ position:absolute; left:0; right:0; bottom:6%; display:flex; flex-direction:column; gap:6px; align-items:center; padding:0 12px; z-index:5; pointer-events:auto }
     .cap-line{ max-width:min(86%, 900px); width:fit-content; color:#111; font-weight:600; letter-spacing:.2px; line-height:1.35; border-radius:14px; padding:8px 12px; box-shadow:0 6px 20px rgba(0,0,0,.16) }
-
-    /* Colores pastel para cada idioma */
-    .track-ja{     background:rgba(219,234,254,.95) }   /* celeste pastel */
-    .track-romaji{ background:rgba(255,245,232,.95) }  /* rosado cálido */
-    .track-es{     background:rgba(236,253,245,.95) }  /* verde agua pastel */
-    .track-en{     background:rgba(254,249,195,.95) }  /* amarillo pastel */
+.track-ja{ background:rgba(219,234,254,.95) }   /* celeste pastel */
+.track-romaji{ background:rgba(255,245,232,.95) } /* rosado cálido */
+.track-es{ background:rgba(236,253,245,.95) }   /* verde agua pastel */
+.track-en{ background:rgba(254,249,195,.95) }   /* amarillo pastel */
 
     .word-ja{ cursor:pointer; padding:0 2px; border-radius:6px }
     .word-ja:hover{ background:rgba(0,0,0,.06) }
     .track-romaji .word-ro{ pointer-events:none; cursor:default; padding:0 2px; border-radius:6px }
 
-    .hl { outline:2px solid #b59bff; background:rgba(181,155,255,.12); border-radius:6px }
+    .hl { outline:2px solid color-mix(in oklch,var(--accent),white 15%); background:rgba(181,155,255,.12); border-radius:6px }
 
     .popover{ position:absolute; z-index:10; min-width:220px; max-width:320px; background:#fff; border:1px solid var(--edge); border-radius:14px; box-shadow:0 10px 30px rgba(0,0,0,.15); padding:10px 12px; display:none }
     .popover .word{ font-weight:800 } .popover .hint{ color:var(--muted); font-size:12px }
@@ -71,19 +68,54 @@
     .ro-badge{ margin-left:8px; font-size:12px; padding:2px 6px; border-radius:999px; border:1px solid var(--edge); background:#fff }
 
     .diag{ display:none; }
-    .pill{ padding:4px 8px; border-radius:999px; border:1px solid var(--edge); background:#f0abfc; white-space:nowrap }
+    .pill{ padding:4px 8px; border-radius:999px; border:1px solid var(--edge); background:#f7f7ff; white-space:nowrap }
+    .tools{ display:flex; gap:8px; padding:0 16px 16px; flex-wrap:wrap }
+    .tools .btn{ height:auto; padding:8px 12px; width:auto }
 
     ruby{ ruby-position:over; } rt{ font-size:.65em; color:#6b6a73 }
+  </style>
 
-    /* Asegurar duración visible */
+  <!-- ====== OVERRIDES DE COLOR (tu paleta + mejoras de legibilidad) ====== -->
+  <style id="palette-overrides">
+    :root{
+      --ink:#111827;
+      --brand:#5b21b6;
+      --muted:#6b7280;
+      --grad1:#f0abfc;
+      --grad2:#93c5fd;
+      --grad3:#a7f3d0;
+      --grad4:#f0abfc;
+    }
+
+    /* Header en gradiente de la paleta */
+    .header{ background:linear-gradient(135deg, var(--grad1), var(--grad2)); color:#fff; }
+
+    /* Barra de progreso y buffer */
+    .progress{ background:var(--brand); }
+    .buffered{ background:var(--grad2); }
+
+    /* Chips de info */
+    .pill{ background:var(--grad3); color:var(--ink); }
+    .pill{ background:var(--grad4); color:var(--ink); }
+    /* Subtítulos: 4 colores distintos */
+    .track-romaji{ background:var(--grad1); color:#111; } /* RO: rosa */
+    .track-es{     background:var(--grad2); color:#111; } /* ES: verde agua */
+    .track-ja{     background:var(--grad3); color:#111; } /* JA: celeste */
+    .track-en{     background:var(--grad4; color:#111; } /* EN: violeta + texto amarillo para alto contraste */
+
+    /* Tiempo total (badge) y #duration más oscuros para verse siempre */
+    .badge{ background:#111827 !important; color:#29272e !important; }
     #duration{ color:#111827; font-weight:700; opacity:0.95; }
   </style>
 </head>
 <body>
+</body>
+</html>
+
   <div class="player" id="player" tabindex="0" aria-label="Reproductor de video con subtítulos y panel flotante">
     <div class="header">
       <h1 class="title">Proyecto integral — Reproductor</h1>
-      <span class="badge" id="badgeDur">0:34</span>
+      <span class="badge" id="badgeDur">00:00</span>
     </div>
 
     <div class="stage">
@@ -92,7 +124,7 @@
         <track id="trk-ja" label="日本語"   kind="subtitles" srclang="ja"      src="subs-ja.vtt" default />
         <track id="trk-ro" label="Rōmaji"  kind="subtitles" srclang="ja-Latn" src="subs-ro.vtt" />
         <track id="trk-es" label="Español" kind="subtitles" srclang="es"      src="subs-es.vtt" />
-        <track id="trk-en" label="Inglés"  kind="subtitles" srclang="en"      src="subs-en.vtt" />
+        <track id="trk-en" label="Inglés" kind="subtitles" srclang="es"      src="subs-en.vtt" />
         Tu navegador no soporta la etiqueta <code>video</code>.
       </video>
 
@@ -125,7 +157,7 @@
           <div class="progress" id="progressBar"></div>
           <input id="seek" class="slider" type="range" min="0" max="1000" step="1" value="0" />
         </div>
-        <div class="time" id="duration">0:34</div>
+        <div class="time" id="duration">0:00</div>
       </div>
       <div class="row">
         <button class="btn" id="mute" title="Silenciar/Activar">🔊</button>
@@ -157,12 +189,13 @@
       <span class="pill" id="pillJA">JA: —</span>
       <span class="pill" id="pillRO">RO: —</span>
       <span class="pill" id="pillES">ES: —</span>
-      <span class="pill" id="pillEN">EN: —</span>
+      <span class="pill" id="pillES">EN: —</span>
     </div>
     <div class="diag" id="diag"></div>
 
     <div class="foot">Atajos: Espacio · ←/→ ±5s · ↑/↓ volumen · M mute · F pantalla completa · J/A/E alternar JA/RO/ES · G furigana</div>
   </div>
+
 <script>
 (function(){
   const $ = (s)=>document.querySelector(s);
@@ -689,9 +722,6 @@
 </script>
 </body>
 </html>
-
-
-
 
 
 
